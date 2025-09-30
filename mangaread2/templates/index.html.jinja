@@ -1,9 +1,14 @@
 <!DOCTYPE html><html>
 <head>
     <title>{{folder.parent.name}}: {{folder.name}} | {{DISPLAY_NAME}}</title>
+
     <meta charset=utf-8>
     <meta name=viewport content="width=device-width">
     <meta name=referrer content=strict-origin>
+    {% if ocr_running %}
+       <meta http-equiv=refresh content=5>
+    {% endif %}
+
     <link rel=stylesheet href=/style/main.css>
 </head>
 

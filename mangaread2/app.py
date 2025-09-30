@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import logging as log
 import mimetypes
+import multiprocessing
 import os
+import shutil
+from contextlib import suppress
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import jinja2
-from fastapi import FastAPI, Request
+from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.datastructures import URL
 from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -29,6 +32,8 @@ LOADER = jinja2.PackageLoader(NAME, "templates")
 ENV = jinja2.Environment(loader=LOADER, autoescape=jinja2.select_autoescape())
 TEMPLATES = Jinja2Templates(env=ENV)
 app = FastAPI(default_response_class=HTMLResponse, debug=True)
+
+OCRING: set[Path] = set()
 
 
 def mount(name: str) -> None:
@@ -50,6 +55,7 @@ def get_sorted_dir(path: Path) -> list[Path]:
 class Page:
     request: Request
     folder: Path
+    ocr: bool = False
 
     @property
     def title(self) -> str:
@@ -68,6 +74,10 @@ class Page:
             "DISPLAY_NAME": DISPLAY_NAME,
             "no_emoji": "&#xFE0E;",
         })
+
+    @property
+    def ocr_running(self) -> bool:
+        return self.folder in OCRING
 
     @property
     def images(self) -> Iterable[Path]:
@@ -102,11 +112,40 @@ class Page:
         return str(URL(str(url)).replace(scheme="", netloc=""))
 
 
+def do_ocr(folder: Path) -> None:
+    from mokuro.run import run  # slow
+    proc = multiprocessing.Process(  # HACK: prevent hanging on SIGINT
+        target=run,  # maintains its own cache, exits early if already OCR'ed
+        args=[str(folder)],
+        kwargs={"disable_confirmation": True, "legacy_html": False,},
+        daemon=True,
+    )
+    proc.start()
+    proc.join()
+    OCRING.remove(folder)
+
+    shutil.rmtree(folder.parent / "_ocr" / folder.name, ignore_errors=True)
+    with suppress(OSError):  # not empty
+        (folder.parent / "_ocr").rmdir()
+
 @app.get("/{rest:path}")
-def browse(request: Request, rest: str = DEFAULT_PATH) -> Response:
+async def browse(
+    request: Request,
+    tasks: BackgroundTasks,
+    rest: str = DEFAULT_PATH,
+    ocr: bool = False,
+) -> Response:
     path = Path(rest)
+
     if path.is_file():
         return FileResponse(path)
+
     if path.is_dir():
-        return Page(request, path).response
+        ocr_json = path.parent / f"{path.name}.mokuro"
+        if ocr and path not in OCRING and not ocr_json.exists():
+            tasks.add_task(do_ocr, path)
+            OCRING.add(path)
+
+        return Page(request, path, ocr).response
+
     return Response(status_code=404)

@@ -8,11 +8,12 @@ dependencies = [
     "uvicorn>=0.34.2",
     "docopt-ng>=0.9.0",
     "natsort>=8.4.0",
+    "mokuro>=0.2.2",
 ]
 
 [dependency-groups]
 dev = [
-    "basedpyright>=1.29.1",
+    "basedpyright>=1.31.5",
     "ipdb>=0.13.13",
     "ipython-autoimport>=0.5.1",
     "ptipython>=1.0.1",
@@ -51,6 +52,7 @@ ignore = [
     "ERA001",  # commented out code
     "ANN",  # annotations (handled by pyright)
     "ASYNC110",  # using asyncio.sleep in while loop
+    "ASYNC240",  # using pathlib.Path in async methods
     "S101",  # using assert
     "S104",  # having a "0.0.0.0" string
     "S303", "S324",  # using MD5
@@ -73,6 +75,7 @@ ignore = [
     "C901",  # complex functions
     "PERF203",  # try-except within loop
     "D1",  # not having docstrings
+    "PLC0415",  # import not at file's top
     "PLR09",  # too many methods, too many statements, etc
     "PLR2004",  # using magic values
     "PLW2901",  # redefining loop variable
