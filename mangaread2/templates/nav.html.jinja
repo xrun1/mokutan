@@ -1,0 +1,12 @@
+<nav>
+    <h2>
+        {% if previous_folder %}
+            <a href="/{{previous_folder}}">Previous</a>&emsp;
+        {% endif %}
+        {{folder.parent.name}}: {{folder.name}}&emsp;
+
+        {% if next_folder %}
+            <a href="/{{next_folder}}">Next</a>
+        {% endif %}
+    </h2>
+</nav>

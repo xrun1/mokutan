@@ -1,0 +1,19 @@
+<!DOCTYPE html><html>
+<head>
+    <title>{{folder.parent.name}}: {{folder.name}} | {{DISPLAY_NAME}}</title>
+    <meta charset=utf-8>
+    <meta name=viewport content="width=device-width">
+    <meta name=referrer content=strict-origin>
+    <link rel=stylesheet href=/style/main.css>
+</head>
+
+<body>
+    {% include "nav.html.jinja" %}
+
+    {% for img in images %}
+        <h4>{{img.name}}</h4>
+        <img src='/{{img}}' loader=lazy>"
+    {% endfor %}
+
+    {% include "nav.html.jinja" %}
+</body></html>

@@ -1,0 +1,88 @@
+[project]
+name = "mangaread2"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.12",
+    "jinja2>=3.1.6",
+    "uvicorn>=0.34.2",
+    "docopt-ng>=0.9.0",
+    "natsort>=8.4.0",
+]
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.29.1",
+    "ipdb>=0.13.13",
+    "ipython-autoimport>=0.5.1",
+    "ptipython>=1.0.1",
+    "pympler>=1.1",
+    "pyperclip>=1.9.0",
+    "rich>=14.0.0",
+    "ruff>=0.11.10",
+]
+
+[project.scripts]
+mangaread2 = "mangaread2.__main__:run"
+
+[tool.uv]
+package = true
+
+[tool.basedpyright]
+pythonVersion = "3.12"
+pythonPlatform = "All"
+reportAny = false
+reportExplicitAny = false
+reportUnusedCallResult = false
+reportMissingTypeStubs = false
+reportUnknownParameterType = false
+reportUnknownArgumentType = false
+reportUnknownLambdaType = false
+reportUnknownVariableType = false
+reportUnknownMemberType = false
+
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.lint]
+preview = true
+select = ["ALL"]
+ignore = [
+    "ERA001",  # commented out code
+    "ANN",  # annotations (handled by pyright)
+    "ASYNC110",  # using asyncio.sleep in while loop
+    "S101",  # using assert
+    "S104",  # having a "0.0.0.0" string
+    "S303", "S324",  # using MD5
+    "S404",  # using subprocess
+    "S602",  # ...with shell
+    "S603",  # ...without shell
+    "S604",  # ...with shell
+    "S607",  # calling executable without full path
+    "FBT",  # boolean traps
+    "B901",  # returning in generators
+    "CPY001", # no file copyright header
+    "DTZ",  # using timezone-naive datetimes
+    "EM", # passing string directly to exception constructors
+    "FIX",  # having FIXME/TODO/etc comments
+    "T",  # using print/pprint
+    "SIM102",  # using nested ifs to avoid exceeding line length limit
+    "SIM905",  # static str.split usafe for easier typing
+    "TD",  # writing quick and dirty TODOs
+    "FLY002",  # using sep.join(...) instead of a single f-string
+    "C901",  # complex functions
+    "PERF203",  # try-except within loop
+    "D1",  # not having docstrings
+    "PLR09",  # too many methods, too many statements, etc
+    "PLR2004",  # using magic values
+    "PLW2901",  # redefining loop variable
+    "TRY003",  # passing messages to exception constructors
+    "TRY301",  # raising within try block
+]
+
+[tool.ruff.lint.flake8-annotations]
+suppress-dummy-args = true
+ignore-fully-untyped = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

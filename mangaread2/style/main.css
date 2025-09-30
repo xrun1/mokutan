@@ -1,0 +1,17 @@
+* {
+    text-align: center;
+}
+
+html {
+    background: black;
+    color: gray;
+}
+
+img {
+    max-width: 100%;
+    border: 1px solid #333;
+}
+
+a {
+    color: crimson;
+}
