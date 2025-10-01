@@ -16,10 +16,11 @@
     {% include "nav.html.jinja" %}
 
     {% for img in images %}
-        <h4>{{img.name}}</h4>
+        {% set anchor = img.stem.replace(' ', '') %}
+        <h4><a href="#{{anchor}}">{{img.name}}</a></h4>
 
         <div class=page>
-            <img src="/{{img}}" loader=lazy>
+            <img id="{{anchor}}" src="/{{img}}" loader=lazy>
 
             {% for box in ocr_boxes(img) %}
                 <p style="

@@ -17,6 +17,13 @@ a {
     color: crimson;
 }
 
+h4 a {
+    color: gray;
+    text-decoration: none;
+    border: 1px solid #333;
+    padding: 0.3rem 0.75rem;
+}
+
 .page {
     position: relative;
 }
