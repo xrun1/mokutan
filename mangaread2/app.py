@@ -143,63 +143,64 @@ class Page:
         else:
             return
 
-        for page in data["pages"]:
-            if Path(page["img_path"]).stem == image.stem:
-                page_w, page_h = page["img_width"], page["img_height"]
+        if not (page := next((
+            p for p in data["pages"] if Path(p["img_path"]).stem == image.stem
+        ), None)):
+            return
 
-                for block in page["blocks"]:
-                    # left, top, right, bottom = block["box"]
-                    lines, coords = block["lines"], block["lines_coords"]
+        page_w, page_h = page["img_width"], page["img_height"]
 
-                    boxes = []
-                    prev_start = prev_end = Point(math.inf, math.inf)
+        for block in page["blocks"]:
+            # left, top, right, bottom = block["box"]
+            lines, coords = block["lines"], block["lines_coords"]
 
-                    # Split OCR-detected boxes that are probably multiple
-                    # multiple actual boxes in the image based on text spacing
-                    for line, coord in zip(lines, coords, strict=True):
-                        start, _top_right, end, _bot_left = \
-                            starmap(Point, coord)
+            boxes = []
+            prev_start = prev_end = Point(math.inf, math.inf)
 
-                        if block["vertical"]:
-                            new_box = (
-                                abs(start.y - prev_start.y) > page_h / 100 or
-                                abs(end.x - prev_start.x) > page_w / 50
-                            )
-                        else:
-                            new_box = (
-                                abs(prev_start.x - start.x) > page_w / 100 or
-                                abs(prev_end.y - start.y) > page_h / 100
-                            )
+            # Split OCR-detected boxes that are probably multiple
+            # multiple actual boxes in the image based on text spacing
+            for line, coord in zip(lines, coords, strict=True):
+                start, _top_right, end, _bot_left = starmap(Point, coord)
 
-                        if new_box:
-                            boxes.append(OCRBox(
-                                x=start.x,
-                                y=start.y,
-                                vertical=block["vertical"],
-                                font_size=block["font_size"] / 14,
-                            ))
+                if block["vertical"]:
+                    new_box = (
+                        abs(start.y - prev_start.y) > page_h / 100 or
+                        abs(end.x - prev_start.x) > page_w / 50
+                    )
+                else:
+                    new_box = (
+                        abs(prev_start.x - start.x) > page_w / 100 or
+                        abs(prev_end.y - start.y) > page_h / 100
+                    )
 
-                        box = boxes[-1]
-                        box.lines.append(line)
-                        box.x = min(box.x, start.x)
-                        box.y = min(box.y, start.y)
+                if new_box:
+                    boxes.append(OCRBox(
+                        x=start.x,
+                        y=start.y,
+                        vertical=block["vertical"],
+                        font_size=block["font_size"] / 14,
+                    ))
 
-                        if box.vertical:
-                            box.w += end.x - start.x
-                            box.h = max(box.h, end.y - start.y)
-                        else:
-                            box.w = max(box.w, end.x - start.x)
-                            box.h += end.y - start.y
+                box = boxes[-1]
+                box.lines.append(line)
+                box.x = min(box.x, start.x)
+                box.y = min(box.y, start.y)
 
-                        prev_start, prev_end = start, end
+                if box.vertical:
+                    box.w += end.x - start.x
+                    box.h = max(box.h, end.y - start.y)
+                else:
+                    box.w = max(box.w, end.x - start.x)
+                    box.h += end.y - start.y
 
-                    for box in boxes:  # Convert to 0-1 percentages
-                        box.x /= page_w
-                        box.y /= page_h
-                        box.w /= page_w
-                        box.h /= page_h
-                        yield box
+                prev_start, prev_end = start, end
 
+            for box in boxes:  # Convert to 0-1 percentages
+                box.x /= page_w
+                box.y /= page_h
+                box.w /= page_w
+                box.h /= page_h
+                yield box
 
     @staticmethod
     def local_url(url: Path | str | None) -> str:
