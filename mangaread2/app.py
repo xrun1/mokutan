@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import json
 import logging as log
+import math
 import mimetypes
 import multiprocessing
 import os
 import shutil
 from contextlib import suppress
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
+from itertools import starmap
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 import jinja2
 from fastapi import BackgroundTasks, FastAPI, Request
@@ -47,8 +50,28 @@ if os.getenv("UVICORN_RELOAD"):
 
 
 @lru_cache
-def get_sorted_dir(path: Path) -> list[Path]:
-    return natsorted(path.iterdir(), key=lambda p: p.name)
+def get_sorted_dir(folder: Path) -> list[Path]:
+    return natsorted(folder.iterdir(), key=lambda p: p.name)
+
+
+def get_ocr_file(folder: Path) -> Path:
+    return folder.parent / (folder.name + ".mokuro")
+
+
+class Point(NamedTuple):
+    x: float
+    y: float
+
+
+@dataclass(slots=True)
+class OCRBox:
+    x: float = 0
+    y: float = 0
+    w: float = 0
+    h: float = 0
+    vertical: bool = False
+    font_size: int = 0
+    lines: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -105,6 +128,70 @@ class Page:
 
         return folders[index]
 
+    def ocr_boxes(self, image: Path) -> Iterable[OCRBox]:
+        try:
+            data = json.load(get_ocr_file(self.folder).open(encoding="utf-8"))
+        except FileNotFoundError:
+            return []
+
+        for page in data["pages"]:
+            if page["img_path"] == image.name:
+                page_w, page_h = page["img_width"], page["img_height"]
+
+                for block in page["blocks"]:
+                    # left, top, right, bottom = block["box"]
+                    lines, coords = block["lines"], block["lines_coords"]
+
+                    boxes = []
+                    prev_start = prev_end = Point(math.inf, math.inf)
+
+                    # Split OCR-detected boxes that are probably multiple
+                    # multiple actual boxes in the image based on text spacing
+                    for line, coord in zip(lines, coords, strict=True):
+                        start, _top_right, end, _bot_left = \
+                            starmap(Point, coord)
+
+                        if block["vertical"]:
+                            new_box = (
+                                abs(start.y - prev_start.y) > page_h / 100 or
+                                abs(end.x - prev_start.x) > page_w / 50
+                            )
+                        else:
+                            new_box = (
+                                abs(prev_start.x - start.x) > page_w / 100 or
+                                abs(prev_end.y - start.y) > page_h / 100
+                            )
+
+                        if new_box:
+                            boxes.append(OCRBox(
+                                x=start.x,
+                                y=start.y,
+                                vertical=block["vertical"],
+                                font_size=block["font_size"] / 14,
+                            ))
+
+                        box = boxes[-1]
+                        box.lines.append(line)
+                        box.x = min(box.x, start.x)
+                        box.y = min(box.y, start.y)
+
+                        if box.vertical:
+                            box.w += end.x - start.x
+                            box.h = max(box.h, end.y - start.y)
+                        else:
+                            box.w = max(box.w, end.x - start.x)
+                            box.h += end.y - start.y
+
+                        prev_start, prev_end = start, end
+
+                    for box in boxes:  # Convert to 0-1 percentages
+                        box.x /= page_w
+                        box.y /= page_h
+                        box.w /= page_w
+                        box.h /= page_h
+                        yield box
+
+
     @staticmethod
     def local_url(url: Path | str | None) -> str:
         if not url:
@@ -141,8 +228,7 @@ async def browse(
         return FileResponse(path)
 
     if path.is_dir():
-        ocr_json = path.parent / f"{path.name}.mokuro"
-        if ocr and path not in OCRING and not ocr_json.exists():
+        if ocr and path not in OCRING and not get_ocr_file(path).exists():
             tasks.add_task(do_ocr, path)
             OCRING.add(path)
 

@@ -1,17 +1,40 @@
-* {
+nav, h4 {
     text-align: center;
+    color: gray;
 }
 
 html {
     background: black;
-    color: gray;
 }
 
 img {
     max-width: 100%;
-    border: 1px solid #333;
+    outline: 1px solid #333;
+    user-select: none;
 }
 
 a {
     color: crimson;
+}
+
+.page {
+    position: relative;
+}
+
+.page p {
+    transition: opacity 0.2s;
+    opacity: 0;
+    position: absolute;
+    white-space: nowrap;
+    line-height: 1.1em;
+    background: hsl(55 100% 95%);
+    margin: 0;
+    border: 1rem solid transparent;
+    outline: 1px solid black;
+    translate: -1rem -1rem;
+    overflow-x: auto;
+
+    &:hover {
+        opacity: 1;
+    }
 }

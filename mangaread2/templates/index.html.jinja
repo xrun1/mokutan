@@ -17,7 +17,26 @@
 
     {% for img in images %}
         <h4>{{img.name}}</h4>
-        <img src='/{{img}}' loader=lazy>"
+
+        <div class=page>
+            <img src="/{{img}}" loader=lazy>
+
+            {% for box in ocr_boxes(img) %}
+                <p style="
+                    left: {{box.x * 100}}%;
+                    top: {{box.y * 100}}%;
+                    min-width: {{box.w * 100}}%;
+                    max-width: calc({{100 - box.x * 100}}% - 2rem);
+                    min-height: {{box.h * 100}}%;
+                    font-size: {{box.font_size}}vw;
+                    {% if box.vertical %}
+                        writing-mode: vertical-rl;
+                    {% endif %}
+                ">
+                    {{"<br>".join(box.lines)}}
+                </p>
+            {% endfor %}
+        </div>
     {% endfor %}
 
     {% include "nav.html.jinja" %}
