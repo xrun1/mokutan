@@ -211,9 +211,11 @@ def do_ocr(folder: Path) -> None:
     proc.join()
     OCRING.remove(folder)
 
-    shutil.rmtree(folder.parent / "_ocr" / folder.name, ignore_errors=True)
-    with suppress(OSError):  # not empty
-        (folder.parent / "_ocr").rmdir()
+    # If no final file, process was probably interrupted so keep the cache
+    if get_ocr_file(folder).exists():
+        shutil.rmtree(folder.parent / "_ocr" / folder.name, ignore_errors=True)
+        with suppress(OSError):  # not empty
+            (folder.parent / "_ocr").rmdir()
 
 @app.get("/{rest:path}")
 async def browse(
