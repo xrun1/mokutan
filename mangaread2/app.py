@@ -54,6 +54,10 @@ def get_sorted_dir(folder: Path) -> list[Path]:
     return natsorted(folder.iterdir(), key=lambda p: p.name)
 
 
+def get_wip_ocr_folder(folder: Path) -> Path:
+    return folder.parent / "_ocr" / folder.name
+
+
 def get_ocr_file(folder: Path) -> Path:
     return folder.parent / (folder.name + ".mokuro")
 
@@ -129,13 +133,18 @@ class Page:
         return folders[index]
 
     def ocr_boxes(self, image: Path) -> Iterable[OCRBox]:
-        try:
-            data = json.load(get_ocr_file(self.folder).open(encoding="utf-8"))
-        except FileNotFoundError:
-            return []
+        if (final := get_ocr_file(self.folder)).exists():
+            data = json.load(final.open(encoding="utf-8"))
+        elif (wip := get_wip_ocr_folder(self.folder)).exists():
+            data = {"pages": [
+                json.load(f.open(encoding="utf-8")) | {"img_path": f.name}
+                for f in natsorted(wip.glob("*.json"), key=lambda f: f.name)
+            ]}
+        else:
+            return
 
         for page in data["pages"]:
-            if page["img_path"] == image.name:
+            if Path(page["img_path"]).stem == image.stem:
                 page_w, page_h = page["img_width"], page["img_height"]
 
                 for block in page["blocks"]:
@@ -213,9 +222,9 @@ def do_ocr(folder: Path) -> None:
 
     # If no final file, process was probably interrupted so keep the cache
     if get_ocr_file(folder).exists():
-        shutil.rmtree(folder.parent / "_ocr" / folder.name, ignore_errors=True)
+        shutil.rmtree(wip := get_wip_ocr_folder(folder), ignore_errors=True)
         with suppress(OSError):  # not empty
-            (folder.parent / "_ocr").rmdir()
+            wip.parent.rmdir()
 
 
 @app.get("/{rest:path}")
