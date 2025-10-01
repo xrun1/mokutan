@@ -1,12 +1,17 @@
 <nav>
     <h2>
         {% if previous_folder %}
-            <a href="/{{previous_folder}}">Previous</a>&emsp;
+            <a href="/{{previous_folder}}">Previous</a>&#32;
         {% endif %}
-        {{folder.parent.name}}: {{folder.name}}&emsp;
+        {{folder.parent.name}}: {{folder.name}}&#32;
 
         {% if next_folder %}
             <a href="/{{next_folder}}">Next</a>
-        {% endif %}
+        {% endif %} |&#32;
+
+        <a href="
+            {{request.url.remove_query_params('ocr') if ocr else
+            request.url.include_query_params(ocr=1)}}
+        ">{{"Disable" if ocr else "Enable"}} OCR</a>
     </h2>
 </nav>
