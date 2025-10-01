@@ -1,10 +1,10 @@
-nav, h4 {
+body {
+    background: black;
     text-align: center;
-    color: gray;
 }
 
-html {
-    background: black;
+nav, h4 {
+    color: gray;
 }
 
 img {
@@ -26,12 +26,14 @@ h4 a {
 
 .page {
     position: relative;
+    display: inline-block;
 }
 
 .page p {
     transition: opacity 0.2s;
     opacity: 0;
     position: absolute;
+    text-align: left;
     white-space: nowrap;
     line-height: 1.1em;
     background: hsl(55 100% 95%);
