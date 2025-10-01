@@ -217,6 +217,7 @@ def do_ocr(folder: Path) -> None:
         with suppress(OSError):  # not empty
             (folder.parent / "_ocr").rmdir()
 
+
 @app.get("/{rest:path}")
 async def browse(
     request: Request,
