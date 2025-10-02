@@ -205,22 +205,28 @@ def adjacent_folder(folder: Path, step: int) -> Path | None:
 
 
 def do_ocr(folder: Path) -> None:
-    from mokuro.run import run  # slow
-    proc = multiprocessing.Process(  # HACK: prevent hanging on SIGINT
-        target=run,  # maintains its own cache, exits early if already OCR'ed
-        args=[str(folder)],
-        kwargs={"disable_confirmation": True, "legacy_html": False},
-        daemon=True,
-    )
-    proc.start()
-    proc.join()
-    OCRING.remove(folder)
+    if folder in OCRING or get_ocr_file(folder).exists():
+        return
 
-    # If no final file, process was probably interrupted so keep the cache
+    try:
+        OCRING.add(folder)
+        from mokuro.run import run  # slow
+        proc = multiprocessing.Process(  # HACK: prevent hanging on SIGINT
+            target=run,  # maintains a cache, exits early if already OCR'ed
+            args=[str(folder)],
+            kwargs={"disable_confirmation": True, "legacy_html": False},
+            daemon=True,
+        )
+        proc.start()
+        proc.join()
+    finally:
+        OCRING.discard(folder)
+
     if get_ocr_file(folder).exists():
         shutil.rmtree(wip := get_wip_ocr_folder(folder), ignore_errors=True)
         with suppress(OSError):  # not empty
             wip.parent.rmdir()
+    # Else if no final file, process was probably interrupted so keep the cache
 
 
 @app.get("/{rest:path}")
@@ -236,10 +242,8 @@ async def browse(
         return FileResponse(path)
 
     if path.is_dir():
-        if ocr and path not in OCRING and not get_ocr_file(path).exists():
+        if ocr:
             tasks.add_task(do_ocr, path)
-            OCRING.add(path)
-
         return Page(request, path, ocr).response
 
     return Response(status_code=404)
