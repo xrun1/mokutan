@@ -49,19 +49,6 @@ if os.getenv("UVICORN_RELOAD"):
     StaticFiles.is_not_modified = lambda *_, **_kws: False  # type: ignore
 
 
-@lru_cache
-def get_sorted_dir(folder: Path) -> list[Path]:
-    return natsorted(folder.iterdir(), key=lambda p: p.name)
-
-
-def get_wip_ocr_folder(folder: Path) -> Path:
-    return folder.parent / "_ocr" / folder.name
-
-
-def get_ocr_file(folder: Path) -> Path:
-    return folder.parent / (folder.name + ".mokuro")
-
-
 class Point(NamedTuple):
     x: float
     y: float
@@ -114,23 +101,11 @@ class Page:
 
     @property
     def previous_folder(self) -> Path | None:
-        return self.adjacent_folder(-1)
+        return adjacent_folder(self.folder, -1)
 
     @property
     def next_folder(self) -> Path | None:
-        return self.adjacent_folder(+1)
-
-    def adjacent_folder(self, step: int) -> Path | None:
-        if self.folder.parent is self.folder:  # drive root
-            return None
-
-        folders = [p for p in get_sorted_dir(self.folder.parent) if p.is_dir()]
-        index = folders.index(self.folder) + step
-
-        if index < 0 or index >= len(folders):
-            return None
-
-        return folders[index]
+        return adjacent_folder(self.folder, +1)
 
     def ocr_boxes(self, image: Path) -> Iterable[OCRBox]:
         if (final := get_ocr_file(self.folder)).exists():
@@ -202,11 +177,31 @@ class Page:
                 box.h /= page_h
                 yield box
 
-    @staticmethod
-    def local_url(url: Path | str | None) -> str:
-        if not url:
-            return "/"
-        return str(URL(str(url)).replace(scheme="", netloc=""))
+
+@lru_cache
+def get_sorted_dir(folder: Path) -> list[Path]:
+    return natsorted(folder.iterdir(), key=lambda p: p.name)
+
+
+def get_wip_ocr_folder(folder: Path) -> Path:
+    return folder.parent / "_ocr" / folder.name
+
+
+def get_ocr_file(folder: Path) -> Path:
+    return folder.parent / (folder.name + ".mokuro")
+
+
+def adjacent_folder(folder: Path, step: int) -> Path | None:
+    if folder.parent is folder:  # drive root
+        return None
+
+    folders = [p for p in get_sorted_dir(folder.parent) if p.is_dir()]
+    index = folders.index(folder) + step
+
+    if index < 0 or index >= len(folders):
+        return None
+
+    return folders[index]
 
 
 def do_ocr(folder: Path) -> None:
@@ -214,7 +209,7 @@ def do_ocr(folder: Path) -> None:
     proc = multiprocessing.Process(  # HACK: prevent hanging on SIGINT
         target=run,  # maintains its own cache, exits early if already OCR'ed
         args=[str(folder)],
-        kwargs={"disable_confirmation": True, "legacy_html": False,},
+        kwargs={"disable_confirmation": True, "legacy_html": False},
         daemon=True,
     )
     proc.start()
