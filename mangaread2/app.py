@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import os
-from abc import ABC, abstractmethod
+from abc import ABC
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Event
-from typing import ClassVar, override
+from typing import ClassVar
 
 import jinja2
 from fastapi import FastAPI, Request
@@ -39,11 +39,6 @@ class Page(ABC):
     request: Request
 
     @property
-    @abstractmethod
-    def title(self) -> str:
-        ...
-
-    @property
     def response(self) -> Response:
         passthrough = {type, getattr}
 
@@ -62,11 +57,6 @@ class Page(ABC):
 class Browse(Page):
     template: ClassVar[str] = "index.html.jinja"
     folder: Path
-
-    @property
-    @override
-    def title(self) -> str:
-        return f"{self.folder.parent.name}: {self.folder.name}"
 
     @property
     def ocr(self) -> ocr.OCRJob:
