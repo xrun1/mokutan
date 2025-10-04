@@ -1,11 +1,11 @@
 <nav>
     <h2>
-        {% if previous_folder %}
+        {% if ocr.previous_job %}
             <a href="/{{ocr.previous_job}}">Previous</a>&#32;
         {% endif %}
         {{folder.parent.name}}: {{folder.name}}&#32;
 
-        {% if next_folder %}
+        {% if ocr.next_job %}
             <a href="/{{ocr.next_job}}">Next</a>
         {% endif %}
     </h2>
