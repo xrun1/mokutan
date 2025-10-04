@@ -11,11 +11,13 @@
 </head>
 
 <body id=jobs>
+    <a href="/ocr/pause">{{"Resume" if paused else "Pause"}}</a>
     <a href="/ocr/clear">Cancel all</a>
 
     <table>
         <tr>
             <th>Folder</th>
+            <th></th>
             <th>Progress</th>
             <th>Actions</th>
         </tr>
@@ -23,7 +25,14 @@
         {% for job in queue %}
             <tr>
                 <td>{{job}}</td>
-                <td>{% if job.running %}► {% endif %}{{job.progress_text}}</td>
+                <td>
+                    {% if job.paused %}
+                        ⏸
+                    {% elif job.running %}
+                        ⏵︎
+                    {% endif %}
+                </td>
+                <td>{{job.progress_text}}</td>
                 <td class=actions>
                     <a href="/ocr/shift/-1/{{job}}" alt="Move up">🠋</a>
                     <a href="/ocr/shift/+1/{{job}}" alt="Move down">🠉</a>

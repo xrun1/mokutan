@@ -25,6 +25,7 @@ from fastapi import APIRouter, Response, status
 from .utils import Point, flatten, get_sorted_dir
 
 OCR_QUEUE: deque[OCRJob] = deque()
+pause_queue: bool = False
 router = APIRouter(prefix="/ocr")
 
 
@@ -97,8 +98,12 @@ class OCRJob(Path):
         return "/".join(map(str, self.progress))
 
     @property
+    def paused(self) -> bool:
+        return pause_queue and bool(OCR_QUEUE) and OCR_QUEUE[0] == self
+
+    @property
     def running(self) -> bool:
-        return bool(OCR_QUEUE) and OCR_QUEUE[0] == self
+        return not pause_queue and bool(OCR_QUEUE) and OCR_QUEUE[0] == self
 
     @property
     def complete(self) -> bool:
@@ -189,6 +194,14 @@ def queue_loop(stop: Event) -> None:
     current: tuple[OCRJob, multiprocessing.Process] | None = None
 
     while not stop.is_set():
+        time.sleep(0.5)
+
+        if pause_queue:
+            if current:
+                current[1].terminate()  # can resume later with mokuro's cache
+                current = None
+            continue
+
         if current and current[1].exitcode is not None:
             if current[0].final_file.exists():  # cache no longer needed
                 with suppress(OSError):
@@ -199,7 +212,7 @@ def queue_loop(stop: Event) -> None:
             current = None
 
         if current and (not OCR_QUEUE or current[0] != OCR_QUEUE[0]):
-            current[1].terminate()  # can resume later thanks to mokuro's cache
+            current[1].terminate()
             current = None
 
         if not current and OCR_QUEUE:
@@ -213,7 +226,12 @@ def queue_loop(stop: Event) -> None:
             proc.start()
             current = (job, proc)
 
-        time.sleep(0.5)
+
+@router.get("/pause")
+async def toggle_pause_queue() -> Response:
+    global pause_queue  # noqa: PLW0603
+    pause_queue = not pause_queue
+    return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/start/{folder:path}")

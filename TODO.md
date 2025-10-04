@@ -1,8 +1,4 @@
-- Auto-OCR next page ahead
 - Make boxes keyboard and touch-compatible
 - Support zip/cbz
 - Render folders and archives
 - Parent link
-
-- fix next/prev links not include ?ocr
-- "disable ocr" make it kill process

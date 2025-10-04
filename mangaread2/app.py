@@ -74,6 +74,10 @@ class Jobs(Page):
     def queue(self) -> Sequence[ocr.OCRJob]:
         return ocr.OCR_QUEUE
 
+    @property
+    def paused(self) -> bool:
+        return ocr.pause_queue
+
 
 @asynccontextmanager
 async def life(_app: FastAPI):
