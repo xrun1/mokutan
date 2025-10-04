@@ -231,8 +231,8 @@ async def start_ocr(
     return RedirectResponse(url=referer, status_code=status.HTTP_303_SEE_OTHER)
 
 
-@router.get("/stop/{folder:path}")
-async def stop_ocr(folder: str, recursive: bool = False) -> Response:
+@router.get("/cancel/{folder:path}")
+async def cancel_ocr(folder: str, recursive: bool = False) -> Response:
     job = OCRJob(folder)
     OCR_QUEUE.remove(job)
 
@@ -245,7 +245,7 @@ async def stop_ocr(folder: str, recursive: bool = False) -> Response:
 
 
 @router.get("/clear")
-async def stop_all_ocr() -> Response:
+async def cancel_all_ocr() -> Response:
     OCR_QUEUE.clear()
     return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
 

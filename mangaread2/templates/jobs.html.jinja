@@ -11,7 +11,7 @@
 </head>
 
 <body id=jobs>
-    <a href="/ocr/clear">Stop all</a>
+    <a href="/ocr/clear">Cancel all</a>
 
     <table>
         <tr>
@@ -29,10 +29,10 @@
                     <a href="/ocr/shift/+1/{{job}}" alt="Move down">🠉</a>
                     <a href="/ocr/move/0/{{job}}" alt="Process now ">⭱</a>
                     <a href="/ocr/move/end/{{job}}" alt="Process last">⭳</a>
-                    <a href="/ocr/stop/{{job}}" alt="Stop">✖</a>
+                    <a href="/ocr/cancel/{{job}}" alt="Cancel">✖</a>
                     <a
-                        href="/ocr/stop/{{job}}?recursive=1"
-                        alt="Stop this and all subfolders recursively"
+                        href="/ocr/cancel/{{job}}?recursive=1"
+                        alt="Cancel this and all subfolders recursively"
                     >〷</a>
                 </td>
             </tr>
