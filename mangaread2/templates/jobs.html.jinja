@@ -1,0 +1,45 @@
+<!DOCTYPE html><html>
+<head>
+    <title>OCR Jobs | {{DISPLAY_NAME}}</title>
+
+    <meta charset=utf-8>
+    <meta name=viewport content="width=device-width">
+    <meta name=referrer content=strict-origin>
+    <meta http-equiv=refresh content=3>
+
+    <link rel=stylesheet href=/style/main.css>
+</head>
+
+<body id=jobs>
+    <a href="/ocr/clear">Stop all</a>
+
+    <table>
+        <tr>
+            <th>Folder</th>
+            <th>Progress</th>
+            <th>Actions</th>
+        </tr>
+
+        {% for job in queue %}
+            <tr>
+                <td>{{job}}</td>
+                <td>{% if job.running %}► {% endif %}{{job.progress_text}}</td>
+                <td class=actions>
+                    <a href="/ocr/shift/-1/{{job}}" alt="Move up">🠋</a>
+                    <a href="/ocr/shift/+1/{{job}}" alt="Move down">🠉</a>
+                    <a href="/ocr/move/0/{{job}}" alt="Process now ">⭱</a>
+                    <a href="/ocr/move/end/{{job}}" alt="Process last">⭳</a>
+                    <a href="/ocr/stop/{{job}}" alt="Stop">✖</a>
+                    <a
+                        href="/ocr/stop/{{job}}?recursive=1"
+                        alt="Stop this and all subfolders recursively"
+                    >〷</a>
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+
+    {% if not queue %}
+        <p id=empty-queue>Queue is empty</p>
+    {% endif %}
+</body></html>

@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Event
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 import jinja2
 from fastapi import FastAPI, Request
@@ -21,6 +21,9 @@ from fastapi.templating import Jinja2Templates
 
 from . import DISPLAY_NAME, NAME, ocr
 from .utils import catch_log_exceptions
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 DEFAULT_PATH = str(Path.home())
 LOADER = jinja2.PackageLoader(NAME, "templates")
@@ -63,6 +66,15 @@ class Browse(Page):
         return ocr.OCRJob(self.folder)
 
 
+@dataclass(slots=True)
+class Jobs(Page):
+    template: ClassVar[str] = "jobs.html.jinja"
+
+    @property
+    def queue(self) -> Sequence[ocr.OCRJob]:
+        return ocr.OCR_QUEUE
+
+
 @asynccontextmanager
 async def life(_app: FastAPI):
     wrapped = catch_log_exceptions(ocr.queue_loop)
@@ -80,6 +92,11 @@ app = FastAPI(default_response_class=HTMLResponse, lifespan=life, debug=True)
 app.include_router(ocr.router)
 
 list(map(mount, ["style"]))
+
+
+@app.get("/jobs")
+async def jobs(request: Request) -> Response:
+    return Jobs(request).response
 
 
 @app.get("/{folder:path}")

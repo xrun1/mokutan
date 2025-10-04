@@ -10,7 +10,7 @@
         {% endif %}
     </h2>
 
-    <details>
+    <details open>
         <summary>OCR</summary>
         <form action="/ocr/start/{{folder}}">
             <input type=hidden name=referer value="{{request.url}}">
@@ -24,7 +24,7 @@
             </label>
             <label>
                 <input type=checkbox name=prioritize value=1>
-                Work on this job before others
+                Add to front of the queue
             </label>
             <button type=submit>Start</button>
         </form>

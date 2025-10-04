@@ -93,6 +93,10 @@ class OCRJob(Path):
         return (len(list(self.wip_folder.glob("*.json"))), total)
 
     @property
+    def progress_text(self) -> str:
+        return "/".join(map(str, self.progress))
+
+    @property
     def running(self) -> bool:
         return bool(OCR_QUEUE) and OCR_QUEUE[0] == self
 
@@ -229,24 +233,21 @@ async def start_ocr(
 
 @router.get("/stop/{folder:path}")
 async def stop_ocr(folder: str, recursive: bool = False) -> Response:
-    stop = set(Path(folder).glob("**/")) if recursive else {Path(folder)}
-    OCR_QUEUE.clear()
-    OCR_QUEUE.extend(folder for folder in OCR_QUEUE if folder not in stop)
-    return Response(status_code=200)
+    job = OCRJob(folder)
+    OCR_QUEUE.remove(job)
+
+    if recursive:
+        queue = OCR_QUEUE.copy()
+        OCR_QUEUE.clear()
+        OCR_QUEUE.extend(j for j in queue if OCRJob(folder) not in j.parents)
+
+    return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/clear")
 async def stop_all_ocr() -> Response:
     OCR_QUEUE.clear()
-    return Response(status_code=200)
-
-
-@router.get("/move/{to}/{folder:path}")
-async def move_ocr_job_position(folder: str, to: int) -> Response:
-    job = OCRJob(folder)
-    del OCR_QUEUE[OCR_QUEUE.index(job)]
-    OCR_QUEUE.insert(to, job)
-    return Response(status_code=200)
+    return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/move/end/{folder:path}")
@@ -254,12 +255,20 @@ async def move_ocr_job_position_end(folder: str) -> Response:
     return await move_ocr_job_position(folder, len(OCR_QUEUE))
 
 
+@router.get("/move/{to}/{folder:path}")
+async def move_ocr_job_position(folder: str, to: int) -> Response:
+    job = OCRJob(folder)
+    del OCR_QUEUE[OCR_QUEUE.index(job)]
+    OCR_QUEUE.insert(to, job)
+    return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
+
+
 @router.get("/shift/{by}/{folder:path}")
 async def shift_ocr_job_position(folder: str, by: int) -> Response:
     job = OCRJob(folder)
     del OCR_QUEUE[index := OCR_QUEUE.index(job)]
     OCR_QUEUE.insert(index + by, job)
-    return Response(status_code=200)
+    return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/edit")
@@ -267,4 +276,4 @@ async def manual_edit_ocr_queue(content: str) -> Response:
     OCR_QUEUE.clear()
     jobs = (OCRJob(x) for x in content.splitlines())
     OCR_QUEUE.extend(j for j in jobs if j.exists())
-    return Response(status_code=200)
+    return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
