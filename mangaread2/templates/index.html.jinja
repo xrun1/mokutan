@@ -15,30 +15,28 @@
 <body>
     {% include "nav.html.jinja" %}
 
-    {% for img in images %}
+    {% for img in ocr.images %}
         {% set anchor = img.stem.replace(' ', '') %}
         <h4><a href="#{{anchor}}">{{img.name}}</a></h4>
 
         <div class=page>
             <img id="{{anchor}}" src="/{{img}}" loader=lazy>
 
-            {% if ocr %}
-                {% for box in ocr_boxes(img) %}
-                    <p style="
-                        left: {{box.x * 100}}%;
-                        top: {{box.y * 100}}%;
-                        min-width: {{box.w * 100}}%;
-                        max-width: calc({{100 - box.x * 100}}% - 2rem);
-                        min-height: {{box.h * 100}}%;
-                        font-size: clamp(1rem, {{box.font_size}}vw, 2rem);
-                        {% if box.vertical %}
-                            writing-mode: vertical-rl;
-                        {% endif %}
-                    ">
-                        {{"<br>".join(box.lines)}}
-                    </p>
-                {% endfor %}
-            {% endif %}
+            {% for box in ocr.boxes(img) %}
+                <p style="
+                    left: {{box.x * 100}}%;
+                    top: {{box.y * 100}}%;
+                    min-width: {{box.w * 100}}%;
+                    max-width: calc({{100 - box.x * 100}}% - 2rem);
+                    min-height: {{box.h * 100}}%;
+                    font-size: clamp(1rem, {{box.font_size}}vw, 2rem);
+                    {% if box.vertical %}
+                        writing-mode: vertical-rl;
+                    {% endif %}
+                ">
+                    {{"<br>".join(box.lines)}}
+                </p>
+            {% endfor %}
         </div>
     {% endfor %}
 

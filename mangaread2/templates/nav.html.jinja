@@ -1,17 +1,33 @@
 <nav>
     <h2>
         {% if previous_folder %}
-            <a href="/{{previous_folder}}">Previous</a>&#32;
+            <a href="/{{ocr.previous_job}}">Previous</a>&#32;
         {% endif %}
         {{folder.parent.name}}: {{folder.name}}&#32;
 
         {% if next_folder %}
-            <a href="/{{next_folder}}">Next</a>
-        {% endif %} |&#32;
-
-        <a href="
-            {{request.url.remove_query_params('ocr') if ocr else
-            request.url.include_query_params(ocr=1)}}
-        ">{{"Disable" if ocr else "Enable"}} OCR</a>
+            <a href="/{{ocr.next_job}}">Next</a>
+        {% endif %}
     </h2>
+
+    <details>
+        <summary>OCR</summary>
+        <form action="/ocr/start/{{folder}}">
+            <input type=hidden name=referer value="{{request.url}}">
+            <label>
+                <input type=checkbox name=keep_going value=1>
+                Scan next chapters/folders too
+            </label>
+            <label>
+                <input type=checkbox name=recursive value=1>
+                Recurse down subfolders
+            </label>
+            <label>
+                <input type=checkbox name=prioritize value=1>
+                Work on this job before others
+            </label>
+            <button type=submit>Start</button>
+        </form>
+    </details>
+    <br>
 </nav>
