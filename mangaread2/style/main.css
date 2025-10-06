@@ -11,10 +11,15 @@ body {
 
 nav, h4 {
     color: gray;
+    word-wrap: break-word;
+}
+
+nav a {
+    text-decoration: none;
 }
 
 img {
-    max-width: 100%;
+    width: 100%;
     outline: 1px solid #333;
     user-select: none;
 }
@@ -52,6 +57,27 @@ h4 a {
 
     &:hover {
         opacity: 1;
+    }
+}
+
+#non-images > a {
+    display: inline-block;
+    vertical-align: middle;
+    width: 25%;
+    min-width: min(calc(100% - 2rem), 25rem);
+    max-width: 60rem;
+    margin: 1rem;
+    text-decoration: none;
+
+    & > h4 {
+        text-decoration: underline;
+        text-decoration-color: crimson;
+        margin: 1.5rem 0;
+    }
+
+    & .no-thumb {
+        text-decoration: none;
+        font-size: 6rem;
     }
 }
 

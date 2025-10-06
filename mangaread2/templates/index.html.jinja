@@ -1,6 +1,6 @@
 <!DOCTYPE html><html>
 <head>
-    <title>{{folder.parent.name}}: {{folder.name}} | {{DISPLAY_NAME}}</title>
+    <title>{{folder.name or folder}} | {{DISPLAY_NAME}}</title>
 
     <meta charset=utf-8>
     <meta name=viewport content="width=device-width">
@@ -15,12 +15,28 @@
 <body>
     {% include "nav.html.jinja" %}
 
+    <div id=non-images>
+        {% for path, thumbnail in ocr.non_images %}
+            <a href="{{to_url(path)}}">
+                <h4>{{path.name}}</h4>
+
+                {% if thumbnail %}
+                    <img class=folder src="{{to_url(thumbnail)}}" loader=lazy>
+                {% elif path.is_dir() %}
+                    <div class="no-thumb folder">🗀</div>
+                {% else %}
+                    <div class="no-thumb file">🗎</div>
+                {% endif %}
+            </a>
+        {% endfor %}
+    </div>
+
     {% for img in ocr.images %}
         {% set anchor = img.stem.replace(' ', '') %}
         <h4><a href="#{{anchor}}">{{img.name}}</a></h4>
 
         <div class=page>
-            <img id="{{anchor}}" src="/{{img}}" loader=lazy>
+            <img id="{{anchor}}" src="{{to_url(img)}}" loader=lazy>
 
             {% for box in ocr.boxes(img) %}
                 <p style="

@@ -1,0 +1,21 @@
+<!DOCTYPE html><html>
+<head>
+    <title>This PC | {{DISPLAY_NAME}}</title>
+
+    <meta charset=utf-8>
+    <meta name=viewport content="width=device-width">
+    <meta name=referrer content=strict-origin>
+
+    <link rel=stylesheet href=/style/main.css>
+</head>
+
+<body>
+    <div id=non-images>
+        {% for path in drives %}
+            <a href="{{to_url(path)}}">
+                <h4>{{path}}</h4>
+                <div class="no-thumb drive">🖴</div>
+            </a>
+        {% endfor %}
+    </div>
+</body></html>

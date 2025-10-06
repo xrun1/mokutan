@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import logging
+import mimetypes
 from typing import TYPE_CHECKING, NamedTuple
 
 from natsort import natsorted
@@ -37,3 +38,12 @@ def catch_log_exceptions[**P, T](fn: Callable[P, T]) -> Callable[P, T]:
         except Exception:
             log.exception("Error caught")
     return wrapper
+
+
+def is_image(path: Path) -> bool:
+    mime = mimetypes.guess_type(path)[0] or ""
+
+    if mime == "image/epub":
+        return False
+
+    return mime.startswith("image/")

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import math
-import mimetypes
 import multiprocessing
 import shutil
 import time
@@ -15,6 +14,8 @@ from typing import TYPE_CHECKING, Self
 
 from fastapi.responses import RedirectResponse
 from natsort import natsorted
+
+from .utils import is_image, log
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
@@ -112,9 +113,20 @@ class OCRJob(Path):
 
     @property
     def images(self) -> list[Path]:
+        return [p for p in get_sorted_dir(self) if is_image(p)]
+
+    @property
+    def non_images(self) -> list[tuple[Path, Path | None]]:
+        def thumb(p: Path) -> Path | None:
+            try:
+                return self._thumbnail(p)
+            except OSError:
+                log.exception("Error trying to thumbnail %s", p)
+                return None
+
         return [
-            p for p in get_sorted_dir(self)
-            if (mimetypes.guess_type(p)[0] or "").startswith("image/")
+            (p, thumb(p)) for p in get_sorted_dir(self)
+            if not (is_image(p) or p.suffix == ".mokuro" or p.name == "_ocr")
         ]
 
     def boxes(self, image: Path) -> Iterable[OCRBox]:
@@ -187,6 +199,24 @@ class OCRJob(Path):
                 box.w /= page_w
                 box.h /= page_h
                 yield box
+
+    def _thumbnail(self, path: Path, recurse: int = 2) -> Path | None:
+        if is_image(path):
+            return path
+
+        if path.is_dir():
+            items = path.iterdir() if recurse else path.glob("*/")
+            dirs_tried = 0
+
+            for child in natsorted(items, key=lambda c: (c.is_dir(), c.name)):
+                if (thumb := self._thumbnail(child, max(0, recurse - 1))):
+                    return thumb
+                if child.is_dir():
+                    dirs_tried += 1
+                if dirs_tried >= 3:
+                    break
+
+        return None
 
 
 def queue_loop(stop: Event) -> None:

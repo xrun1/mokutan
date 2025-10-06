@@ -1,18 +1,25 @@
 <nav>
     <h2>
-        {% if ocr.previous_job %}
-            <a href="/{{ocr.previous_job}}">Previous</a>&#32;
+        {% if folder.parent == folder %}
+            <a title="This PC" href="/">⭡</a>&#32;
+        {% elif folder.parent %}
+            <a title=Parent href="{{to_url(folder.parent)}}">⭡</a>&#32;
         {% endif %}
-        {{folder.parent.name}}: {{folder.name}}&#32;
+
+        {% if ocr.previous_job %}
+            <a title=Previous href="{{to_url(ocr.previous_job)}}">⭠</a>&#32;
+        {% endif %}
+
+        {{folder.name or folder}}&#32;
 
         {% if ocr.next_job %}
-            <a href="/{{ocr.next_job}}">Next</a>
+            <a title=Next href="{{to_url(ocr.next_job)}}">⭢</a>
         {% endif %}
     </h2>
 
     <details open>
         <summary>OCR</summary>
-        <form action="/ocr/start/{{folder}}">
+        <form action="/ocr/start{{to_url(folder)}}">
             <input type=hidden name=referer value="{{request.url}}">
             <label>
                 <input type=checkbox name=keep_going value=1>

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Iterator
 import os
 from abc import ABC
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
+import string
 from threading import Event
 from typing import TYPE_CHECKING, ClassVar
 
@@ -25,7 +27,6 @@ from .utils import catch_log_exceptions
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-DEFAULT_PATH = str(Path.home())
 LOADER = jinja2.PackageLoader(NAME, "templates")
 ENV = jinja2.Environment(loader=LOADER, autoescape=jinja2.select_autoescape())
 TEMPLATES = Jinja2Templates(env=ENV)
@@ -55,6 +56,11 @@ class Page(ABC):
             "no_emoji": "&#xFE0E;",
         })
 
+    @staticmethod
+    def to_url(path: Path) -> str:
+        # use .absolute() or first \ gets mangled on windows sometimes somehow
+        return "/" + str(path.absolute().as_posix())
+
 
 @dataclass(slots=True)
 class Browse(Page):
@@ -64,6 +70,15 @@ class Browse(Page):
     @property
     def ocr(self) -> ocr.OCRJob:
         return ocr.OCRJob(self.folder)
+
+
+@dataclass(slots=True)
+class WindowsDrives(Page):
+    template: ClassVar[str] = "drives.html.jinja"
+
+    @property
+    def drives(self) -> list[Path]:
+        return list(map(Path, os.listdrives()))
 
 
 @dataclass(slots=True)
@@ -104,10 +119,14 @@ async def jobs(request: Request) -> Response:
 
 
 @app.get("/{folder:path}")
-async def browse(request: Request, folder: str = DEFAULT_PATH) -> Response:
-    path = Path(folder)
+async def browse(request: Request, folder: str = "/") -> Response:
+    if os.name == "nt" and folder in {"/", r"\\", ""}:
+        return WindowsDrives(request).response
+
+    path = Path(folder or "/")
     if path.is_file():
         return FileResponse(path)
     if path.is_dir():
         return Browse(request, path).response
+
     return Response(status_code=404)

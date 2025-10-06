@@ -1,4 +1,2 @@
 - Make boxes keyboard and touch-compatible
 - Support zip/cbz
-- Render folders and archives
-- Parent link
