@@ -25,6 +25,7 @@ log.setLevel(logging.INFO)
 
 TEMP = Path(gettempdir()) / NAME
 LOCKS: defaultdict[Path, asyncio.Lock] = defaultdict(asyncio.Lock)
+IGNORED_ARCHIVES: set[Path] = set()
 
 
 class Point(NamedTuple):
@@ -37,7 +38,7 @@ def get_sorted_dir[T: Path](folder: T) -> list[T]:
 
 
 async def get_auto_extracted_path(path: Path) -> Path | None:
-    if not (archive := next((
+    if path in IGNORED_ARCHIVES or not (archive := next((
         p for p in (path, *path.parents)
         if is_supported_archive(p) and p.is_file()
     ), None)):
@@ -53,8 +54,16 @@ async def get_auto_extracted_path(path: Path) -> Path | None:
         return TEMP / fix_end(path)
 
     async with LOCKS[base]:
-        base.mkdir(parents=True)
         with ZipFile(archive) as arc:
+            renderable = [
+                f for f in arc.filelist
+                if f.is_dir() or is_web_image(f.orig_filename)
+            ]
+            if len(renderable) < len(arc.filelist) * 0.8:
+                IGNORED_ARCHIVES.add(path)
+                return None
+
+            base.mkdir(parents=True)
             await asyncio.to_thread(arc.extractall, base)
 
         while len(list(base.iterdir())) == 1 and next(base.iterdir()).is_dir():
@@ -87,7 +96,7 @@ def is_supported_archive(path: Path) -> bool:
     }
 
 
-def is_web_image(path: Path) -> bool:
+def is_web_image(path: Path | str) -> bool:
     return (mimetypes.guess_type(path)[0] or "") in {
         "image/apng",
         "image/avif",
