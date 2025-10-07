@@ -56,11 +56,13 @@ class OCRBox:
 class OCRJob(Path):
     @property
     def wip_folder(self) -> Self:
-        return self.unextracted.parent / "_ocr" / self.name
+        name = self.name if self.unextracted.is_dir() else self.stem
+        return self.unextracted.parent / "_ocr" / name
 
     @property
     def final_file(self) -> Self:
-        return self.unextracted.parent / (self.name + ".mokuro")
+        name = self.name if self.unextracted.is_dir() else self.stem
+        return self.unextracted.parent / (name + ".mokuro")
 
     @property
     async def extracted(self) -> Self:
@@ -295,7 +297,7 @@ def queue_loop(stop: Event) -> None:
             current = None
 
         if not current and OCR_QUEUE:
-            chapter = OCR_QUEUE[0]
+            chapter = OCR_QUEUE[0].unextracted
             proc = multiprocessing.Process(
                 target=run,  # maintains a cache, exits early if already OCR'ed
                 args=[str(chapter)],
@@ -334,7 +336,7 @@ async def start_ocr(
     prioritize: bool = False,
     referer: str = "/",
 ) -> Response:
-    job = OCRJob(folder)
+    job = OCRJob(folder).unextracted
     jobs = job.next_jobs if keep_going else [job]
     jobs = flatten(f.glob("**/") if recursive else [f] for f in jobs)
     (OCR_QUEUE.extendleft if prioritize else OCR_QUEUE.extend)(jobs)
@@ -343,13 +345,13 @@ async def start_ocr(
 
 @router.get("/cancel/{folder:path}")
 async def cancel_ocr(folder: str, recursive: bool = False) -> Response:
-    job = OCRJob(folder)
+    job = OCRJob(folder).unextracted
     OCR_QUEUE.remove(job)
 
     if recursive:
         queue = OCR_QUEUE.copy()
         OCR_QUEUE.clear()
-        OCR_QUEUE.extend(j for j in queue if OCRJob(folder) not in j.parents)
+        OCR_QUEUE.extend(j for j in queue if job not in j.parents)
 
     return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -367,7 +369,7 @@ async def move_ocr_job_position_end(folder: str) -> Response:
 
 @router.get("/move/{to}/{folder:path}")
 async def move_ocr_job_position(folder: str, to: int) -> Response:
-    job = OCRJob(folder)
+    job = OCRJob(folder).unextracted
     del OCR_QUEUE[OCR_QUEUE.index(job)]
     OCR_QUEUE.insert(to, job)
     return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
@@ -375,7 +377,7 @@ async def move_ocr_job_position(folder: str, to: int) -> Response:
 
 @router.get("/shift/{by}/{folder:path}")
 async def shift_ocr_job_position(folder: str, by: int) -> Response:
-    job = OCRJob(folder)
+    job = OCRJob(folder).unextracted
     del OCR_QUEUE[index := OCR_QUEUE.index(job)]
     OCR_QUEUE.insert(index + by, job)
     return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
@@ -384,6 +386,6 @@ async def shift_ocr_job_position(folder: str, by: int) -> Response:
 @router.get("/edit")
 async def manual_edit_ocr_queue(content: str) -> Response:
     OCR_QUEUE.clear()
-    jobs = (OCRJob(x) for x in content.splitlines())
+    jobs = (OCRJob(x).unextracted for x in content.splitlines())
     OCR_QUEUE.extend(j for j in jobs if j.exists())
     return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
