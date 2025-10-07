@@ -1,5 +1,3 @@
 - Make boxes keyboard and touch-compatible
 - Add job queue iframe or link to browse pages
 - Show OCR progress of current chapter in navbar
-- Rename "OCRJob" stuff
-- Update "folder" terminology

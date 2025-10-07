@@ -1,28 +1,30 @@
 <nav>
     <h2>
-        {% set parent = folder.unextracted.parent %}
-        {% if parent == folder %}
+        {% set parent = path.unextracted.parent %}
+        {% if parent == path %}
             <a title="This PC" href="/">⭡</a>&#32;
         {% else %}
-            <a title=Parent href="{{to_url(parent)}}#{{to_anchor(folder)}}">
+            <a title=Parent href="{{to_url(parent)}}#{{to_anchor(path)}}">
                 ⭡
             </a>&#32;
         {% endif %}
 
-        {% if ocr.previous_job %}
-            <a title=Previous href="{{to_url(ocr.previous_job)}}">⭠</a>&#32;
+        {% if path.previous_chapter %}
+            <a title=Previous href="{{to_url(path.previous_chapter)}}">
+                ⭠
+            </a>&#32;
         {% endif %}
 
-        {{folder.name or folder}}&#32;
+        {{path.name or path}}&#32;
 
-        {% if ocr.next_job %}
-            <a title=Next href="{{to_url(ocr.next_job)}}">⭢</a>
+        {% if path.next_chapter %}
+            <a title=Next href="{{to_url(path.next_chapter)}}">⭢</a>
         {% endif %}
     </h2>
 
     <details open>
         <summary>OCR</summary>
-        <form action="/ocr/start{{to_url(folder)}}">
+        <form action="/ocr/start{{to_url(path)}}">
             <input type=hidden name=referer value="{{request.url}}">
             <label>
                 <input type=checkbox name=keep_going value=1>

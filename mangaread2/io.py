@@ -27,14 +27,14 @@ from .utils import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Iterable
     from threading import Event
 
 from fastapi import APIRouter, Response, status
 
 from .utils import Point, flatten, get_sorted_dir
 
-OCR_QUEUE: deque[OCRJob] = deque()
+OCR_QUEUE: deque[MPath] = deque()
 IGNORED_ARCHIVES: set[Path] = set()
 LAST_ARCHIVE_ACCESSES: dict[Path, datetime] = {}
 LOCKS: defaultdict[Path, asyncio.Lock] = defaultdict(asyncio.Lock)
@@ -53,17 +53,7 @@ class OCRBox:
     lines: list[str] = field(default_factory=list)
 
 
-class OCRJob(Path):
-    @property
-    def wip_folder(self) -> Self:
-        name = self.name if self.unextracted.is_dir() else self.stem
-        return self.unextracted.parent / "_ocr" / name
-
-    @property
-    def final_file(self) -> Self:
-        name = self.name if self.unextracted.is_dir() else self.stem
-        return self.unextracted.parent / (name + ".mokuro")
-
+class MPath(Path):
     @property
     async def extracted(self) -> Self:
         if self in IGNORED_ARCHIVES or not (archive := next((
@@ -120,71 +110,18 @@ class OCRJob(Path):
         return type(self)(path) if Path(path).exists() else self
 
     @property
-    def previous_jobs(self) -> Sequence[Self]:
-        if self.unextracted.parent is self:  # drive root
-            return []
-        folders = [
-            p for p in get_sorted_dir(self.unextracted.parent)
-            if p.is_dir() or is_supported_archive(p)
-        ]
-        return folders[:folders.index(self.unextracted.parent / self.name)]
+    def previous_chapter(self) -> Self | None:
+        chapters, own_idx = self._sibling_chapters()
+        return chapters[own_idx - 1] if own_idx else None
 
     @property
-    def next_jobs(self) -> list[Self]:
-        if self.unextracted.parent is self:  # drive root
-            return []
-        folders = [
-            p for p in get_sorted_dir(self.unextracted.parent)
-            if p.is_dir() or is_supported_archive(p)
-        ]
-        return folders[folders.index(self.unextracted.parent / self.name) + 1:]
+    def next_chapters(self) -> list[Self]:
+        chapters, own_idx = self._sibling_chapters()
+        return chapters[own_idx + 1:]
 
     @property
-    def previous_job(self) -> Self | None:
-        try:
-            return self.previous_jobs[-1]
-        except IndexError:
-            return None
-
-    @property
-    def next_job(self) -> Self | None:
-        try:
-            return self.next_jobs[0]
-        except IndexError:
-            return None
-
-    @property
-    def queue_position(self) -> int | None:
-        try:
-            return OCR_QUEUE.index(self)
-        except ValueError:
-            return None
-
-    @property
-    def progress(self) -> tuple[int, int]:
-        total = len(self.images)
-        if self.final_file.exists():
-            return (total, total)
-        if not self.wip_folder.exists():
-            return (0, total)
-        return (len(list(self.wip_folder.glob("*.json"))), total)
-
-    @property
-    def progress_text(self) -> str:
-        return "/".join(map(str, self.progress))
-
-    @property
-    def paused(self) -> bool:
-        return pause_queue and bool(OCR_QUEUE) and OCR_QUEUE[0] == self
-
-    @property
-    def running(self) -> bool:
-        return not pause_queue and bool(OCR_QUEUE) and OCR_QUEUE[0] == self
-
-    @property
-    def complete(self) -> bool:
-        done, total = self.progress
-        return done >= total
+    def next_chapter(self) -> Self | None:
+        return next(iter(self.next_chapters), None)
 
     @property
     def images(self) -> list[Path]:
@@ -198,14 +135,58 @@ class OCRJob(Path):
             )
         ]
 
-    def boxes(self, image: Path) -> Iterable[OCRBox]:
-        if self.final_file.exists():
-            data = json.load(self.final_file.open(encoding="utf-8"))
-        elif self.wip_folder.exists():
+    @property
+    def ocr_wip_dir(self) -> Self:
+        name = self.name if self.unextracted.is_dir() else self.stem
+        return self.unextracted.parent / "_ocr" / name
+
+    @property
+    def ocr_json_file(self) -> Self:
+        name = self.name if self.unextracted.is_dir() else self.stem
+        return self.unextracted.parent / (name + ".mokuro")
+
+    @property
+    def ocr_queue_position(self) -> int | None:
+        try:
+            return OCR_QUEUE.index(self)
+        except ValueError:
+            return None
+
+    @property
+    def ocr_progress(self) -> tuple[int, int]:
+        total = len(self.images)
+        if self.ocr_json_file.exists():
+            return (total, total)
+        if not self.ocr_wip_dir.exists():
+            return (0, total)
+        return (len(list(self.ocr_wip_dir.glob("*.json"))), total)
+
+    @property
+    def ocr_progress_text(self) -> str:
+        return "/".join(map(str, self.ocr_progress))
+
+    @property
+    def ocr_paused(self) -> bool:
+        return pause_queue and bool(OCR_QUEUE) and OCR_QUEUE[0] == self
+
+    @property
+    def ocr_running(self) -> bool:
+        return not pause_queue and bool(OCR_QUEUE) and OCR_QUEUE[0] == self
+
+    @property
+    def ocr_done(self) -> bool:
+        done, total = self.ocr_progress
+        return done >= total
+
+    def ocr_boxes(self, image: Path) -> Iterable[OCRBox]:
+        if self.ocr_json_file.exists():
+            data = json.load(self.ocr_json_file.open(encoding="utf-8"))
+        elif self.ocr_wip_dir.exists():
             data = {"pages": [
                 json.load(f.open(encoding="utf-8")) | {"img_path": f.name}
-                for f in
-                natsorted(self.wip_folder.glob("*.json"), key=lambda f: f.name)
+                for f in natsorted(
+                    self.ocr_wip_dir.glob("*.json"), key=lambda f: f.name,
+                )
             ]}
         else:
             return
@@ -269,10 +250,19 @@ class OCRJob(Path):
                 box.h /= page_h
                 yield box
 
+    def _sibling_chapters(self) -> tuple[list[Self], int]:
+        if self.unextracted.parent is self:  # drive root
+            return ([], -1)
+        chapters = [
+            p for p in get_sorted_dir(self.unextracted.parent)
+            if p.is_dir() or is_supported_archive(p)
+        ]
+        return (chapters, chapters.index(self.unextracted.parent / self.name))
+
 
 def queue_loop(stop: Event) -> None:
     from mokuro.run import run  # slow
-    current: tuple[OCRJob, multiprocessing.Process] | None = None
+    current: tuple[MPath, multiprocessing.Process] | None = None
 
     while not stop.is_set():
         time.sleep(0.5)
@@ -284,9 +274,9 @@ def queue_loop(stop: Event) -> None:
             continue
 
         if current and current[1].exitcode is not None:
-            if current[0].final_file.exists():  # cache no longer needed
+            if current[0].ocr_json_file.exists():  # cache no longer needed
                 with suppress(OSError):
-                    shutil.rmtree(wip := current[0].wip_folder)
+                    shutil.rmtree(wip := current[0].ocr_wip_dir)
                     wip.parent.rmdir()
 
             OCR_QUEUE.popleft()
@@ -328,24 +318,24 @@ async def toggle_pause_queue() -> Response:
     return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
 
 
-@router.get("/start/{folder:path}")
+@router.get("/start/{chapter:path}")
 async def start_ocr(
-    folder: str,
+    chapter: Path | str,
     keep_going: bool = False,
     recursive: bool = False,
     prioritize: bool = False,
     referer: str = "/",
 ) -> Response:
-    job = OCRJob(folder).unextracted
-    jobs = job.next_jobs if keep_going else [job]
+    job = MPath(chapter).unextracted
+    jobs = job.next_chapters if keep_going else [job]
     jobs = flatten(f.glob("**/") if recursive else [f] for f in jobs)
     (OCR_QUEUE.extendleft if prioritize else OCR_QUEUE.extend)(jobs)
     return RedirectResponse(url=referer, status_code=status.HTTP_303_SEE_OTHER)
 
 
-@router.get("/cancel/{folder:path}")
-async def cancel_ocr(folder: str, recursive: bool = False) -> Response:
-    job = OCRJob(folder).unextracted
+@router.get("/cancel/{chapter:path}")
+async def cancel_ocr(chapter: Path | str, recursive: bool = False) -> Response:
+    job = MPath(chapter).unextracted
     OCR_QUEUE.remove(job)
 
     if recursive:
@@ -362,22 +352,22 @@ async def cancel_all_ocr() -> Response:
     return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
 
 
-@router.get("/move/end/{folder:path}")
-async def move_ocr_job_position_end(folder: str) -> Response:
-    return await move_ocr_job_position(folder, len(OCR_QUEUE))
+@router.get("/move/end/{chapter:path}")
+async def move_ocr_job_position_end(chapter: Path | str) -> Response:
+    return await move_ocr_job_position(chapter, len(OCR_QUEUE))
 
 
-@router.get("/move/{to}/{folder:path}")
-async def move_ocr_job_position(folder: str, to: int) -> Response:
-    job = OCRJob(folder).unextracted
+@router.get("/move/{to}/{chapter:path}")
+async def move_ocr_job_position(chapter: Path | str, to: int) -> Response:
+    job = MPath(chapter).unextracted
     del OCR_QUEUE[OCR_QUEUE.index(job)]
     OCR_QUEUE.insert(to, job)
     return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
 
 
-@router.get("/shift/{by}/{folder:path}")
-async def shift_ocr_job_position(folder: str, by: int) -> Response:
-    job = OCRJob(folder).unextracted
+@router.get("/shift/{by}/{chapter:path}")
+async def shift_ocr_job_position(chapter: Path | str, by: int) -> Response:
+    job = MPath(chapter).unextracted
     del OCR_QUEUE[index := OCR_QUEUE.index(job)]
     OCR_QUEUE.insert(index + by, job)
     return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
@@ -386,6 +376,6 @@ async def shift_ocr_job_position(folder: str, by: int) -> Response:
 @router.get("/edit")
 async def manual_edit_ocr_queue(content: str) -> Response:
     OCR_QUEUE.clear()
-    jobs = (OCRJob(x).unextracted for x in content.splitlines())
+    jobs = (MPath(x).unextracted for x in content.splitlines())
     OCR_QUEUE.extend(j for j in jobs if j.exists())
     return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)

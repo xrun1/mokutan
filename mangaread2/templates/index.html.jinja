@@ -1,11 +1,11 @@
 <!DOCTYPE html><html>
 <head>
-    <title>{{folder.name or folder}} | {{DISPLAY_NAME}}</title>
+    <title>{{path.name or path}} | {{DISPLAY_NAME}}</title>
 
     <meta charset=utf-8>
     <meta name=viewport content="width=device-width">
     <meta name=referrer content=strict-origin>
-    {% if ocr.running %}
+    {% if path.ocr_running %}
        <meta http-equiv=refresh content=5>
     {% endif %}
 
@@ -16,7 +16,7 @@
     {% include "nav.html.jinja" %}
 
     <div id=non-images>
-        {% for path in ocr.non_images %}
+        {% for path in path.non_images %}
             <a id={{to_anchor(path)}} href="{{to_url(path)}}">
                 <h4>{{path.name}}</h4>
 
@@ -29,14 +29,14 @@
         {% endfor %}
     </div>
 
-    {% for img in ocr.images %}
+    {% for img in path.images %}
         {% set anchor = img.stem.replace(' ', '') %}
         <h4><a href="#{{to_anchor(img)}}">{{img.name}}</a></h4>
 
         <div class=page>
             <img id="{{to_anchor(img)}}" src="{{to_url(img)}}" loader=lazy>
 
-            {% for box in ocr.boxes(img) %}
+            {% for box in path.ocr_boxes(img) %}
                 <p style="
                     left: {{box.x * 100}}%;
                     top: {{box.y * 100}}%;

@@ -21,7 +21,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from natsort import natsorted
 
-from . import DISPLAY_NAME, NAME, ocr
+from mangaread2 import io
+
+from . import DISPLAY_NAME, NAME
+from .io import MPath
 from .utils import (
     catch_log_exceptions,
     is_web_image,
@@ -69,15 +72,10 @@ class Page(ABC):
         return path.stem.replace(" ", "-")
 
 
-
 @dataclass(slots=True)
 class Browse(Page):
     template: ClassVar[str] = "index.html.jinja"
-    folder: ocr.OCRJob
-
-    @property
-    def ocr(self) -> ocr.OCRJob:
-        return ocr.OCRJob(self.folder)
+    path: MPath
 
 
 @dataclass(slots=True)
@@ -94,19 +92,19 @@ class Jobs(Page):
     template: ClassVar[str] = "jobs.html.jinja"
 
     @property
-    def queue(self) -> Sequence[ocr.OCRJob]:
-        return ocr.OCR_QUEUE
+    def queue(self) -> Sequence[io.MPath]:
+        return io.OCR_QUEUE
 
     @property
     def paused(self) -> bool:
-        return ocr.pause_queue
+        return io.pause_queue
 
 
 @asynccontextmanager
 async def life(_app: FastAPI):
     tasks = [
         asyncio.create_task(asyncio.to_thread(catch_log_exceptions(f), EXIT))
-        for f in (ocr.queue_loop, ocr.trim_archive_cache)
+        for f in (io.queue_loop, io.trim_archive_cache)
     ]
     yield
     EXIT.set()
@@ -118,7 +116,7 @@ def mount(name: str) -> None:
 
 
 app = FastAPI(default_response_class=HTMLResponse, lifespan=life, debug=True)
-app.include_router(ocr.router)
+app.include_router(io.router)
 
 list(map(mount, ["style"]))
 
@@ -133,7 +131,7 @@ async def thumbnail(path: Path | str, recurse: int = 2) -> Response:
     if is_web_image(path):
         return RedirectResponse(Page.to_url(path), status.HTTP_303_SEE_OTHER)
 
-    path = await ocr.OCRJob(path).extracted
+    path = await MPath(path).extracted
 
     if path.is_dir():
         items = path.iterdir() if recurse else path.glob("*/")
@@ -151,16 +149,16 @@ async def thumbnail(path: Path | str, recurse: int = 2) -> Response:
     return Response(status_code=404)
 
 
-@app.get("/{folder:path}")
-async def browse(request: Request, folder: str = "/") -> Response:
-    if os.name == "nt" and folder in {"/", r"\\", ""}:
+@app.get("/{path:path}")
+async def browse(request: Request, path: Path | str = "/") -> Response:
+    if os.name == "nt" and str(path) in {"/", r"\\", ""}:
         return WindowsDrives(request).response
 
-    path = await ocr.OCRJob(folder or "/").extracted
+    path = await MPath(path or "/").extracted
 
     if path.is_file():
         return FileResponse(path)
     if path.is_dir():
-        return Browse(request, ocr.OCRJob(path)).response
+        return Browse(request, MPath(path)).response
 
     return Response(status_code=404)

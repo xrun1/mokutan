@@ -22,25 +22,25 @@
             <th>Actions</th>
         </tr>
 
-        {% for job in queue %}
+        {% for path in queue %}
             <tr>
-                <td>{{job}}</td>
+                <td>{{path}}</td>
                 <td>
-                    {% if job.paused %}
+                    {% if path.ocr_paused %}
                         ⏸
-                    {% elif job.running %}
+                    {% elif path.ocr_running %}
                         ⏵︎
                     {% endif %}
                 </td>
-                <td>{{job.progress_text}}</td>
+                <td>{{path.ocr_progress_text}}</td>
                 <td class=actions>
-                    <a href="/ocr/shift/-1/{{job}}" alt="Move up">🠋</a>
-                    <a href="/ocr/shift/+1/{{job}}" alt="Move down">🠉</a>
-                    <a href="/ocr/move/0/{{job}}" alt="Process now ">⭱</a>
-                    <a href="/ocr/move/end/{{job}}" alt="Process last">⭳</a>
-                    <a href="/ocr/cancel/{{job}}" alt="Cancel">✖</a>
+                    <a href="/ocr/shift/-1/{{path}}" alt="Move up">🠋</a>
+                    <a href="/ocr/shift/+1/{{path}}" alt="Move down">🠉</a>
+                    <a href="/ocr/move/0/{{path}}" alt="Process now ">⭱</a>
+                    <a href="/ocr/move/end/{{path}}" alt="Process last">⭳</a>
+                    <a href="/ocr/cancel/{{path}}" alt="Cancel">✖</a>
                     <a
-                        href="/ocr/cancel/{{job}}?recursive=1"
+                        href="/ocr/cancel/{{path}}?recursive=1"
                         alt="Cancel this and all subfolders recursively"
                     >〷</a>
                 </td>
