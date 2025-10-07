@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-from collections import defaultdict
 import functools
 import logging
 import mimetypes
 import os
 import shutil
+from collections import defaultdict
 from pathlib import Path
 from tempfile import gettempdir
 from typing import TYPE_CHECKING, NamedTuple
@@ -64,6 +64,7 @@ async def get_auto_extracted_path(path: Path) -> Path | None:
                 return None
 
             base.mkdir(parents=True)
+
             await asyncio.to_thread(arc.extractall, base)
 
         while len(list(base.iterdir())) == 1 and next(base.iterdir()).is_dir():
