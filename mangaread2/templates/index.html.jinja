@@ -17,7 +17,7 @@
 
     <div id=non-images>
         {% for path in ocr.non_images %}
-            <a href="{{to_url(path)}}">
+            <a id={{to_anchor(path)}} href="{{to_url(path)}}">
                 <h4>{{path.name}}</h4>
 
                 <img
@@ -31,10 +31,10 @@
 
     {% for img in ocr.images %}
         {% set anchor = img.stem.replace(' ', '') %}
-        <h4><a href="#{{anchor}}">{{img.name}}</a></h4>
+        <h4><a href="#{{to_anchor(img)}}">{{img.name}}</a></h4>
 
         <div class=page>
-            <img id="{{anchor}}" src="{{to_url(img)}}" loader=lazy>
+            <img id="{{to_anchor(img)}}" src="{{to_url(img)}}" loader=lazy>
 
             {% for box in ocr.boxes(img) %}
                 <p style="

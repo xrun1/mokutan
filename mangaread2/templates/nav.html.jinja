@@ -3,7 +3,10 @@
         {% if folder.origin == folder %}
             <a title="This PC" href="/">⭡</a>&#32;
         {% else %}
-            <a title=Parent href="{{to_url(folder.origin)}}">⭡</a>&#32;
+            <a
+                title=Parent
+                href="{{to_url(folder.origin)}}#{{to_anchor(folder)}}"
+            >⭡</a>&#32;
         {% endif %}
 
         {% if ocr.previous_job %}

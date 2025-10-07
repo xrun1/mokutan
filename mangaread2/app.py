@@ -65,6 +65,11 @@ class Page(ABC):
         # use .absolute() or first \ gets mangled on windows sometimes somehow
         return "/" + str(path.absolute().as_posix())
 
+    @staticmethod
+    def to_anchor(path: Path) -> str:
+        return path.stem.replace(" ", "-")
+
+
 
 @dataclass(slots=True)
 class Browse(Page):

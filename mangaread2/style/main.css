@@ -9,6 +9,10 @@ body {
     font-size: 1.8rem;
 }
 
+:focus-visible {
+    outline: 1px solid crimson;
+}
+
 nav, h4 {
     color: gray;
     word-wrap: break-word;
@@ -63,6 +67,7 @@ h4 a {
 #non-images > a {
     display: inline-block;
     vertical-align: bottom;
+    scroll-margin-top: calc(50vh - 40rem / 2 - 3rem - 1.6rem);
     width: 25%;
     min-width: min(calc(100% - 2rem), 25rem);
     max-width: 60rem;
