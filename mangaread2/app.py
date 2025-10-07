@@ -60,9 +60,9 @@ class Page(ABC):
         })
 
     @staticmethod
-    def to_url(path: Path) -> str:
+    def to_url(path: Path | str) -> str:
         # use .absolute() or first \ gets mangled on windows sometimes somehow
-        return "/" + str(path.absolute().as_posix())
+        return "/" + str(Path(path).absolute().as_posix())
 
     @staticmethod
     def to_anchor(path: Path) -> str:
@@ -129,7 +129,7 @@ async def jobs(request: Request) -> Response:
 
 
 @app.get("/thumbnail/{path:path}")
-async def thumbnail(path: Path, recurse: int = 2) -> Response:
+async def thumbnail(path: Path | str, recurse: int = 2) -> Response:
     if is_web_image(path):
         return RedirectResponse(Page.to_url(path), status.HTTP_303_SEE_OTHER)
 
