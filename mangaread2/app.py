@@ -26,6 +26,7 @@ from .utils import (
     catch_log_exceptions,
     get_auto_extracted_path,
     is_web_image,
+    trim_archive_cache,
 )
 
 if TYPE_CHECKING:
@@ -105,11 +106,13 @@ class Jobs(Page):
 
 @asynccontextmanager
 async def life(_app: FastAPI):
-    wrapped = catch_log_exceptions(ocr.queue_loop)
-    task = asyncio.create_task(asyncio.to_thread(wrapped, EXIT))
+    tasks = [
+        asyncio.create_task(asyncio.to_thread(catch_log_exceptions(f), EXIT))
+        for f in (ocr.queue_loop, trim_archive_cache)
+    ]
     yield
     EXIT.set()
-    await task
+    await asyncio.gather(*tasks)
 
 
 def mount(name: str) -> None:

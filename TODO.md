@@ -1,2 +1,1 @@
 - Make boxes keyboard and touch-compatible
-- Support zip/cbz

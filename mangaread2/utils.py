@@ -6,7 +6,9 @@ import logging
 import mimetypes
 import os
 import shutil
+import time
 from collections import defaultdict
+from datetime import datetime, timedelta
 from pathlib import Path
 from tempfile import gettempdir
 from typing import TYPE_CHECKING, NamedTuple
@@ -19,6 +21,7 @@ from . import NAME
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
+    from threading import Event
 
 log = logging.getLogger(NAME)
 log.setLevel(logging.INFO)
@@ -26,6 +29,7 @@ log.setLevel(logging.INFO)
 TEMP = Path(gettempdir()) / NAME
 LOCKS: defaultdict[Path, asyncio.Lock] = defaultdict(asyncio.Lock)
 IGNORED_ARCHIVES: set[Path] = set()
+LAST_ARCHIVE_ACCESSES: dict[Path, datetime] = {}
 
 
 class Point(NamedTuple):
@@ -35,6 +39,19 @@ class Point(NamedTuple):
 
 def get_sorted_dir[T: Path](folder: T) -> list[T]:
     return natsorted(folder.iterdir(), key=lambda p: p.name)
+
+
+def trim_archive_cache(stop: Event) -> None:
+    if TEMP.exists():
+        shutil.rmtree(TEMP, ignore_errors=True)
+
+    while not stop.is_set():
+        long_ago = datetime.now() - timedelta(hours=2)
+        for folder, date in LAST_ARCHIVE_ACCESSES.items():
+            if date < long_ago:
+                shutil.rmtree(folder, ignore_errors=True)
+                del LAST_ARCHIVE_ACCESSES[folder]
+        time.sleep(1)
 
 
 async def get_auto_extracted_path(path: Path) -> Path | None:
@@ -51,6 +68,7 @@ async def get_auto_extracted_path(path: Path) -> Path | None:
         return Path(path)
 
     if (base := TEMP / fix_end(archive)).exists():
+        LAST_ARCHIVE_ACCESSES[archive] = datetime.now()
         return TEMP / fix_end(path)
 
     async with LOCKS[base]:
@@ -73,6 +91,7 @@ async def get_auto_extracted_path(path: Path) -> Path | None:
             shutil.rmtree(base)
             new.rename(base)
 
+    LAST_ARCHIVE_ACCESSES[archive] = datetime.now()
     return TEMP / fix_end(path)
 
 
