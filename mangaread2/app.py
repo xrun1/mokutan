@@ -10,19 +10,22 @@ from threading import Event
 from typing import TYPE_CHECKING, ClassVar
 
 import jinja2
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
 from fastapi.responses import (
     FileResponse,
     HTMLResponse,
+    RedirectResponse,
     Response,
 )
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from natsort import natsorted
 
 from . import DISPLAY_NAME, NAME, ocr
 from .utils import (
     catch_log_exceptions,
     get_auto_extracted_path,
+    is_web_image,
 )
 
 if TYPE_CHECKING:
@@ -119,13 +122,36 @@ async def jobs(request: Request) -> Response:
     return Jobs(request).response
 
 
+@app.get("/thumbnail/{path:path}")
+async def thumbnail(path: Path, recurse: int = 2) -> Response:
+    if is_web_image(path):
+        return RedirectResponse(Page.to_url(path), status.HTTP_303_SEE_OTHER)
+
+    path = await get_auto_extracted_path(path) or path
+
+    if path.is_dir():
+        items = path.iterdir() if recurse else path.glob("*/")
+        dirs_tried = 0
+
+        for child in natsorted(items, key=lambda c: (c.is_dir(), c.name)):
+            thumb = await thumbnail(child, max(0, recurse - 1))
+            if thumb.status_code != 404:
+                return thumb
+            if child.is_dir():
+                dirs_tried += 1
+            if dirs_tried >= 3:
+                break
+
+    return Response(status_code=404)
+
+
 @app.get("/{folder:path}")
 async def browse(request: Request, folder: str = "/") -> Response:
     if os.name == "nt" and folder in {"/", r"\\", ""}:
         return WindowsDrives(request).response
 
     path = Path(folder or "/")
-    path = get_auto_extracted_path(path) or path
+    path = (await get_auto_extracted_path(path)) or path
 
     if path.is_file():
         return FileResponse(path)

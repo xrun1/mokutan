@@ -18,10 +18,8 @@ from natsort import natsorted
 
 from .utils import (
     TEMP,
-    get_auto_extracted_path,
     is_supported_archive,
     is_web_image,
-    log,
 )
 
 if TYPE_CHECKING:
@@ -141,16 +139,9 @@ class OCRJob(Path):
         return [p for p in get_sorted_dir(self) if is_web_image(p)]
 
     @property
-    def non_images(self) -> list[tuple[Path, Path | None]]:
-        def thumb(p: Path) -> Path | None:
-            try:
-                return self._thumbnail(p)
-            except OSError:
-                log.exception("Error trying to thumbnail %s", p)
-                return None
-
+    def non_images(self) -> list[Path]:
         return [
-            (p, thumb(p)) for p in get_sorted_dir(self) if not (
+            p for p in get_sorted_dir(self) if not (
                 is_web_image(p) or p.suffix == ".mokuro" or p.name == "_ocr"
             )
         ]
@@ -225,26 +216,6 @@ class OCRJob(Path):
                 box.w /= page_w
                 box.h /= page_h
                 yield box
-
-    def _thumbnail(self, path: Path, recurse: int = 2) -> Path | None:
-        if is_web_image(path):
-            return path
-
-        path = get_auto_extracted_path(path) or path
-
-        if path.is_dir():
-            items = path.iterdir() if recurse else path.glob("*/")
-            dirs_tried = 0
-
-            for child in natsorted(items, key=lambda c: (c.is_dir(), c.name)):
-                if (thumb := self._thumbnail(child, max(0, recurse - 1))):
-                    return thumb
-                if child.is_dir():
-                    dirs_tried += 1
-                if dirs_tried >= 3:
-                    break
-
-        return None
 
 
 def queue_loop(stop: Event) -> None:

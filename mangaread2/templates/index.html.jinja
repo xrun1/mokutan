@@ -16,17 +16,15 @@
     {% include "nav.html.jinja" %}
 
     <div id=non-images>
-        {% for path, thumbnail in ocr.non_images %}
+        {% for path in ocr.non_images %}
             <a href="{{to_url(path)}}">
                 <h4>{{path.name}}</h4>
 
-                {% if thumbnail %}
-                    <img class=folder src="{{to_url(thumbnail)}}" loader=lazy>
-                {% elif path.is_dir() %}
-                    <div class="no-thumb folder">🗀</div>
-                {% else %}
-                    <div class="no-thumb file">🗎</div>
-                {% endif %}
+                <img
+                    alt="{{'🗀' if path.is_dir() else '🗎'}}"
+                    src="/thumbnail{{to_url(path)}}"
+                    loader=lazy
+                >
             </a>
         {% endfor %}
     </div>

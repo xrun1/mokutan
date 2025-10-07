@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+from collections import defaultdict
 import functools
 import logging
 import mimetypes
@@ -22,6 +24,7 @@ log = logging.getLogger(NAME)
 log.setLevel(logging.INFO)
 
 TEMP = Path(gettempdir()) / NAME
+LOCKS: defaultdict[Path, asyncio.Lock] = defaultdict(asyncio.Lock)
 
 
 class Point(NamedTuple):
@@ -33,7 +36,7 @@ def get_sorted_dir[T: Path](folder: T) -> list[T]:
     return natsorted(folder.iterdir(), key=lambda p: p.name)
 
 
-def get_auto_extracted_path(path: Path) -> Path | None:
+async def get_auto_extracted_path(path: Path) -> Path | None:
     if not (archive := next((
         p for p in (path, *path.parents)
         if is_supported_archive(p) and p.is_file()
@@ -46,10 +49,13 @@ def get_auto_extracted_path(path: Path) -> Path | None:
             return Path(str(path).replace(":", "", 1))
         return Path(path)
 
-    if not (base := TEMP / fix_end(archive)).exists():
+    if (base := TEMP / fix_end(archive)).exists():
+        return TEMP / fix_end(path)
+
+    async with LOCKS[base]:
         base.mkdir(parents=True)
         with ZipFile(archive) as arc:
-            arc.extractall(base)
+            await asyncio.to_thread(arc.extractall, base)
 
         while len(list(base.iterdir())) == 1 and next(base.iterdir()).is_dir():
             new = base.parent / str(uuid4())

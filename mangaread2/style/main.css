@@ -62,7 +62,7 @@ h4 a {
 
 #non-images > a {
     display: inline-block;
-    vertical-align: middle;
+    vertical-align: bottom;
     width: 25%;
     min-width: min(calc(100% - 2rem), 25rem);
     max-width: 60rem;
@@ -75,9 +75,31 @@ h4 a {
         margin: 1.5rem 0;
     }
 
-    & .no-thumb {
-        text-decoration: none;
-        font-size: 6rem;
+    > img {
+        position: relative;
+        min-width: 100%;
+        height: 40rem;
+        min-height: 40rem;
+        object-fit: contain;
+        outline: none;
+
+        &:after {
+            text-decoration: none;
+            font-size: 10rem;
+            line-height: 40rem;
+
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            text-align: center;
+            content: attr(alt);
+            box-sizing: border-box;
+            border: 1px solid #333;
+        }
     }
 }
 
