@@ -16,7 +16,13 @@ from typing import TYPE_CHECKING, Self
 from fastapi.responses import RedirectResponse
 from natsort import natsorted
 
-from .utils import TEMP, is_supported_archive, is_web_image, log
+from .utils import (
+    TEMP,
+    get_auto_extracted_path,
+    is_supported_archive,
+    is_web_image,
+    log,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
@@ -223,6 +229,8 @@ class OCRJob(Path):
     def _thumbnail(self, path: Path, recurse: int = 2) -> Path | None:
         if is_web_image(path):
             return path
+
+        path = get_auto_extracted_path(path) or path
 
         if path.is_dir():
             items = path.iterdir() if recurse else path.glob("*/")
