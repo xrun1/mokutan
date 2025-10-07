@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Iterator
 import os
 from abc import ABC
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-import string
 from threading import Event
 from typing import TYPE_CHECKING, ClassVar
 
@@ -22,7 +20,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from . import DISPLAY_NAME, NAME, ocr
-from .utils import catch_log_exceptions
+from .utils import (
+    catch_log_exceptions,
+    get_auto_extracted_path,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -65,7 +66,7 @@ class Page(ABC):
 @dataclass(slots=True)
 class Browse(Page):
     template: ClassVar[str] = "index.html.jinja"
-    folder: Path
+    folder: ocr.OCRJob
 
     @property
     def ocr(self) -> ocr.OCRJob:
@@ -124,9 +125,11 @@ async def browse(request: Request, folder: str = "/") -> Response:
         return WindowsDrives(request).response
 
     path = Path(folder or "/")
+    path = get_auto_extracted_path(path) or path
+
     if path.is_file():
         return FileResponse(path)
     if path.is_dir():
-        return Browse(request, path).response
+        return Browse(request, ocr.OCRJob(path)).response
 
     return Response(status_code=404)

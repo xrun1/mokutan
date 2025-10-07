@@ -1,9 +1,9 @@
 <nav>
     <h2>
-        {% if folder.parent == folder %}
+        {% if folder.origin == folder %}
             <a title="This PC" href="/">⭡</a>&#32;
-        {% elif folder.parent %}
-            <a title=Parent href="{{to_url(folder.parent)}}">⭡</a>&#32;
+        {% else %}
+            <a title=Parent href="{{to_url(folder.origin)}}">⭡</a>&#32;
         {% endif %}
 
         {% if ocr.previous_job %}

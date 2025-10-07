@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import math
 import multiprocessing
+import os
 import shutil
 import time
 from collections import deque
@@ -15,7 +16,7 @@ from typing import TYPE_CHECKING, Self
 from fastapi.responses import RedirectResponse
 from natsort import natsorted
 
-from .utils import is_web_image, log
+from .utils import TEMP, is_supported_archive, is_web_image, log
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
@@ -43,26 +44,44 @@ class OCRBox:
 
 class OCRJob(Path):
     @property
-    def wip_folder(self) -> Path:
-        return self.parent / "_ocr" / self.name
+    def wip_folder(self) -> Self:
+        return self.origin / "_ocr" / self.name
 
     @property
-    def final_file(self) -> Path:
-        return self.parent / (self.name + ".mokuro")
+    def final_file(self) -> Self:
+        return self.origin / (self.name + ".mokuro")
+
+    @property
+    def origin(self) -> Self:
+        if TEMP not in self.parents:
+            return self.parent
+
+        path = str(self.parent).removeprefix(str(TEMP) + os.sep)
+        if os.name == "nt":
+            path = path[0] + ":" + path[1:]
+
+        print(path)
+        return type(self)(path) if Path(path).exists() else self.parent
 
     @property
     def previous_jobs(self) -> Sequence[Self]:
-        if self.parent is self:  # drive root
+        if self.origin is self:  # drive root
             return []
-        folders = [p for p in get_sorted_dir(self.parent) if p.is_dir()]
-        return folders[:folders.index(self):-1]
+        folders = [
+            p for p in get_sorted_dir(self.origin)
+            if p.is_dir() or is_supported_archive(p)
+        ]
+        return folders[:folders.index(self.origin / self.name)]
 
     @property
     def next_jobs(self) -> list[Self]:
-        if self.parent is self:  # drive root
+        if self.origin is self:  # drive root
             return []
-        folders = [p for p in get_sorted_dir(self.parent) if p.is_dir()]
-        return folders[folders.index(self) + 1:]
+        folders = [
+            p for p in get_sorted_dir(self.origin)
+            if p.is_dir() or is_supported_archive(p)
+        ]
+        return folders[folders.index(self.origin / self.name) + 1:]
 
     @property
     def previous_job(self) -> Self | None:
@@ -237,7 +256,7 @@ def queue_loop(stop: Event) -> None:
             if current[0].final_file.exists():  # cache no longer needed
                 with suppress(OSError):
                     shutil.rmtree(wip := current[0].wip_folder)
-                    wip.parent.rmdir()
+                    wip.origin.rmdir()
 
             OCR_QUEUE.popleft()
             current = None

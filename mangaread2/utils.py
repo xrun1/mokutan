@@ -3,7 +3,13 @@ from __future__ import annotations
 import functools
 import logging
 import mimetypes
+import os
+import shutil
+from pathlib import Path
+from tempfile import gettempdir
 from typing import TYPE_CHECKING, NamedTuple
+from uuid import uuid4
+from zipfile import ZipFile
 
 from natsort import natsorted
 
@@ -11,10 +17,11 @@ from . import NAME
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
-    from pathlib import Path
 
 log = logging.getLogger(NAME)
 log.setLevel(logging.INFO)
+
+TEMP = Path(gettempdir()) / NAME
 
 
 class Point(NamedTuple):
@@ -24,6 +31,33 @@ class Point(NamedTuple):
 
 def get_sorted_dir[T: Path](folder: T) -> list[T]:
     return natsorted(folder.iterdir(), key=lambda p: p.name)
+
+
+def get_auto_extracted_path(path: Path) -> Path | None:
+    if not (archive := next((
+        p for p in (path, *path.parents)
+        if is_supported_archive(p) and p.is_file()
+    ), None)):
+        return None
+
+    def fix_end(path: Path | str) -> Path:
+        if os.name == "nt":
+            assert Path(path).is_absolute()
+            return Path(str(path).replace(":", "", 1))
+        return Path(path)
+
+    if not (base := TEMP / fix_end(archive)).exists():
+        base.mkdir(parents=True)
+        with ZipFile(archive) as arc:
+            arc.extractall(base)
+
+        while len(list(base.iterdir())) == 1 and next(base.iterdir()).is_dir():
+            new = base.parent / str(uuid4())
+            shutil.move(next(base.iterdir()), new)
+            shutil.rmtree(base)
+            new.rename(base)
+
+    return TEMP / fix_end(path)
 
 
 def flatten[T](groups: Iterable[Iterable[T]]) -> list[T]:
@@ -38,6 +72,13 @@ def catch_log_exceptions[**P, T](fn: Callable[P, T]) -> Callable[P, T]:
         except Exception:
             log.exception("Error caught")
     return wrapper
+
+
+def is_supported_archive(path: Path) -> bool:
+    return (mimetypes.guess_type(path)[0] or "") in {
+        "image/cbr",
+        "application/x-zip-compressed",
+    }
 
 
 def is_web_image(path: Path) -> bool:
