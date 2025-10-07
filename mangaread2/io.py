@@ -154,7 +154,14 @@ class MPath(Path):
 
     @property
     def ocr_progress(self) -> tuple[int, int]:
-        total = len(self.images)
+        if is_supported_archive(self):
+            with ZipFile(self) as zf:
+                total = len([
+                    f for f in zf.filelist if is_web_image(f.orig_filename)
+                ])
+        else:
+            total = len(self.images)
+
         if self.ocr_json_file.exists():
             return (total, total)
         if not self.ocr_wip_dir.exists():
