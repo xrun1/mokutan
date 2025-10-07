@@ -40,10 +40,16 @@ def catch_log_exceptions[**P, T](fn: Callable[P, T]) -> Callable[P, T]:
     return wrapper
 
 
-def is_image(path: Path) -> bool:
-    mime = mimetypes.guess_type(path)[0] or ""
-
-    if mime == "image/epub":
-        return False
-
-    return mime.startswith("image/")
+def is_web_image(path: Path) -> bool:
+    return (mimetypes.guess_type(path)[0] or "") in {
+        "image/apng",
+        "image/avif",
+        "image/bmp",
+        "image/gif",
+        "image/vnd.microsoft.icon",
+        "image/jpeg",
+        "image/png",
+        "image/svg+xml",
+        "image/tiff",
+        "image/webp",
+    }

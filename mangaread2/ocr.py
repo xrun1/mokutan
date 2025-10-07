@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Self
 from fastapi.responses import RedirectResponse
 from natsort import natsorted
 
-from .utils import is_image, log
+from .utils import is_web_image, log
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
@@ -113,7 +113,7 @@ class OCRJob(Path):
 
     @property
     def images(self) -> list[Path]:
-        return [p for p in get_sorted_dir(self) if is_image(p)]
+        return [p for p in get_sorted_dir(self) if is_web_image(p)]
 
     @property
     def non_images(self) -> list[tuple[Path, Path | None]]:
@@ -125,8 +125,9 @@ class OCRJob(Path):
                 return None
 
         return [
-            (p, thumb(p)) for p in get_sorted_dir(self)
-            if not (is_image(p) or p.suffix == ".mokuro" or p.name == "_ocr")
+            (p, thumb(p)) for p in get_sorted_dir(self) if not (
+                is_web_image(p) or p.suffix == ".mokuro" or p.name == "_ocr"
+            )
         ]
 
     def boxes(self, image: Path) -> Iterable[OCRBox]:
@@ -201,7 +202,7 @@ class OCRJob(Path):
                 yield box
 
     def _thumbnail(self, path: Path, recurse: int = 2) -> Path | None:
-        if is_image(path):
+        if is_web_image(path):
             return path
 
         if path.is_dir():
