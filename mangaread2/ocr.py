@@ -1,17 +1,21 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import math
 import multiprocessing
 import os
 import shutil
 import time
-from collections import deque
+from collections import defaultdict, deque
 from contextlib import suppress
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from itertools import starmap
 from pathlib import Path
 from typing import TYPE_CHECKING, Self
+from uuid import uuid4
+from zipfile import ZipFile
 
 from fastapi.responses import RedirectResponse
 from natsort import natsorted
@@ -31,6 +35,9 @@ from fastapi import APIRouter, Response, status
 from .utils import Point, flatten, get_sorted_dir
 
 OCR_QUEUE: deque[OCRJob] = deque()
+IGNORED_ARCHIVES: set[Path] = set()
+LAST_ARCHIVE_ACCESSES: dict[Path, datetime] = {}
+LOCKS: defaultdict[Path, asyncio.Lock] = defaultdict(asyncio.Lock)
 pause_queue: bool = False
 router = APIRouter(prefix="/ocr")
 
@@ -49,42 +56,86 @@ class OCRBox:
 class OCRJob(Path):
     @property
     def wip_folder(self) -> Self:
-        return self.origin / "_ocr" / self.name
+        return self.unextracted.parent / "_ocr" / self.name
 
     @property
     def final_file(self) -> Self:
-        return self.origin / (self.name + ".mokuro")
+        return self.unextracted.parent / (self.name + ".mokuro")
 
     @property
-    def origin(self) -> Self:
-        if TEMP not in self.parents:
-            return self.parent
+    async def extracted(self) -> Self:
+        if self in IGNORED_ARCHIVES or not (archive := next((
+            p for p in (self, *self.parents)
+            if is_supported_archive(p) and p.is_file()
+        ), None)):
+            return self
 
-        path = str(self.parent).removeprefix(str(TEMP) + os.sep)
+        def fix_end(path: Self) -> Self:
+            if os.name == "nt":
+                assert path.is_absolute()
+                return type(self)(str(path).replace(":", "", 1))
+            return path
+
+        if (base := TEMP / fix_end(archive)).exists():
+            LAST_ARCHIVE_ACCESSES[archive] = datetime.now()
+            return type(self)(TEMP) / fix_end(self)
+
+        async with LOCKS[base]:
+            with ZipFile(archive) as arc:
+                renderable = [
+                    f for f in arc.filelist
+                    if f.is_dir() or is_web_image(f.orig_filename)
+                ]
+                if len(renderable) < len(arc.filelist) * 0.8:
+                    IGNORED_ARCHIVES.add(self)
+                    return self
+
+                base.mkdir(parents=True)
+
+                await asyncio.to_thread(arc.extractall, base)
+
+            while True:
+                inside = list(base.iterdir())
+                if not (len(inside) == 1 and inside[0].is_dir()):
+                    break
+                new = base.parent / str(uuid4())
+                shutil.move(next(base.iterdir()), new)
+                shutil.rmtree(base)
+                new.rename(base)
+
+        LAST_ARCHIVE_ACCESSES[archive] = datetime.now()
+        return type(self)(TEMP) / fix_end(self)
+
+    @property
+    def unextracted(self) -> Self:
+        if TEMP not in self.parents:
+            return self
+
+        path = str(self).removeprefix(str(TEMP) + os.sep)
         if os.name == "nt":
             path = path[0] + ":" + path[1:]
 
-        return type(self)(path) if Path(path).exists() else self.parent
+        return type(self)(path) if Path(path).exists() else self
 
     @property
     def previous_jobs(self) -> Sequence[Self]:
-        if self.origin is self:  # drive root
+        if self.unextracted.parent is self:  # drive root
             return []
         folders = [
-            p for p in get_sorted_dir(self.origin)
+            p for p in get_sorted_dir(self.unextracted.parent)
             if p.is_dir() or is_supported_archive(p)
         ]
-        return folders[:folders.index(self.origin / self.name)]
+        return folders[:folders.index(self.unextracted.parent / self.name)]
 
     @property
     def next_jobs(self) -> list[Self]:
-        if self.origin is self:  # drive root
+        if self.unextracted.parent is self:  # drive root
             return []
         folders = [
-            p for p in get_sorted_dir(self.origin)
+            p for p in get_sorted_dir(self.unextracted.parent)
             if p.is_dir() or is_supported_archive(p)
         ]
-        return folders[folders.index(self.origin / self.name) + 1:]
+        return folders[folders.index(self.unextracted.parent / self.name) + 1:]
 
     @property
     def previous_job(self) -> Self | None:
@@ -234,7 +285,7 @@ def queue_loop(stop: Event) -> None:
             if current[0].final_file.exists():  # cache no longer needed
                 with suppress(OSError):
                     shutil.rmtree(wip := current[0].wip_folder)
-                    wip.origin.rmdir()
+                    wip.parent.rmdir()
 
             OCR_QUEUE.popleft()
             current = None
@@ -244,15 +295,28 @@ def queue_loop(stop: Event) -> None:
             current = None
 
         if not current and OCR_QUEUE:
-            job = OCR_QUEUE[0]
+            chapter = OCR_QUEUE[0]
             proc = multiprocessing.Process(
                 target=run,  # maintains a cache, exits early if already OCR'ed
-                args=[str(job)],
+                args=[str(chapter)],
                 kwargs={"disable_confirmation": True, "legacy_html": False},
                 daemon=True,
             )
             proc.start()
-            current = (job, proc)
+            current = (chapter, proc)
+
+
+def trim_archive_cache(stop: Event) -> None:
+    if TEMP.exists():
+        shutil.rmtree(TEMP, ignore_errors=True)
+
+    while not stop.is_set():
+        long_ago = datetime.now() - timedelta(hours=2)
+        for folder, date in LAST_ARCHIVE_ACCESSES.items():
+            if date < long_ago:
+                shutil.rmtree(folder, ignore_errors=True)
+                del LAST_ARCHIVE_ACCESSES[folder]
+        time.sleep(1)
 
 
 @router.get("/pause")

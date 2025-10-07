@@ -24,9 +24,7 @@ from natsort import natsorted
 from . import DISPLAY_NAME, NAME, ocr
 from .utils import (
     catch_log_exceptions,
-    get_auto_extracted_path,
     is_web_image,
-    trim_archive_cache,
 )
 
 if TYPE_CHECKING:
@@ -108,7 +106,7 @@ class Jobs(Page):
 async def life(_app: FastAPI):
     tasks = [
         asyncio.create_task(asyncio.to_thread(catch_log_exceptions(f), EXIT))
-        for f in (ocr.queue_loop, trim_archive_cache)
+        for f in (ocr.queue_loop, ocr.trim_archive_cache)
     ]
     yield
     EXIT.set()
@@ -135,7 +133,7 @@ async def thumbnail(path: Path, recurse: int = 2) -> Response:
     if is_web_image(path):
         return RedirectResponse(Page.to_url(path), status.HTTP_303_SEE_OTHER)
 
-    path = await get_auto_extracted_path(path) or path
+    path = await ocr.OCRJob(path).extracted
 
     if path.is_dir():
         items = path.iterdir() if recurse else path.glob("*/")
@@ -158,8 +156,7 @@ async def browse(request: Request, folder: str = "/") -> Response:
     if os.name == "nt" and folder in {"/", r"\\", ""}:
         return WindowsDrives(request).response
 
-    path = Path(folder or "/")
-    path = (await get_auto_extracted_path(path)) or path
+    path = await ocr.OCRJob(folder or "/").extracted
 
     if path.is_file():
         return FileResponse(path)

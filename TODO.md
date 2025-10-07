@@ -1,1 +1,5 @@
 - Make boxes keyboard and touch-compatible
+- Add job queue iframe or link to browse pages
+- Improve navbar
+- Rename "OCRJob" stuff
+- Update "folder" terminology
