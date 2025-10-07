@@ -64,7 +64,6 @@ class OCRJob(Path):
         if os.name == "nt":
             path = path[0] + ":" + path[1:]
 
-        print(path)
         return type(self)(path) if Path(path).exists() else self.parent
 
     @property
