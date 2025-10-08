@@ -1,3 +1,2 @@
 - Make boxes keyboard and touch-compatible
-- Show OCR progress of current chapter in navbar
 - Use long polling instead of constant refreshes

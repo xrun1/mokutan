@@ -39,6 +39,13 @@
                 Add to front of the queue
             </label>
             <button type=submit>Start</button>&emsp;
+
+            {% if path.ocr_running %}
+                <span class=progress>⏵ {{path.ocr_progress_text}}</span>&emsp;
+            {% elif path.ocr_paused %}
+                <span class=progress>⏸ {{path.ocr_progress_text}}</span>&emsp;
+            {% endif %}
+
             <a href="/jobs">Queue</a>
         </form>
     </details>
