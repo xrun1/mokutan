@@ -131,6 +131,10 @@ tr:nth-child(odd) {
     background: hsl(55, 100%, 93%, 0.2);
 }
 
+.actions {
+    white-space: nowrap;
+}
+
 .actions a {
     text-decoration: none;
     font-weight: 600;
