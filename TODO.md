@@ -3,4 +3,3 @@
 - Show something on browse page when queued
 - Fix recurse ocr behavior
 - Use one mokuro process, watch the filesystem to notice when a job ends
-- Fix "loader" attr

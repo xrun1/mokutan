@@ -23,7 +23,7 @@
                 <img
                     alt="{{'🗀' if path.is_dir() else '🗎'}}"
                     src="/thumbnail{{to_url(path)}}"
-                    loader=lazy
+                    loading=lazy
                 >
             </a>
         {% endfor %}
@@ -34,7 +34,7 @@
         <h4><a href="#{{to_anchor(img)}}">{{img.name}}</a></h4>
 
         <div class=page>
-            <img id="{{to_anchor(img)}}" src="{{to_url(img)}}" loader=lazy>
+            <img id="{{to_anchor(img)}}" src="{{to_url(img)}}" loading=lazy>
 
             {% for box in path.ocr_boxes(img) %}
                 <p style="
