@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Self
 from uuid import uuid4
 from zipfile import ZipFile
 
+import wakepy
 from fastapi.responses import RedirectResponse
 from natsort import natsorted
 
@@ -271,8 +272,14 @@ class MPath(Path):
         return (chapters, chapters.index(self.unextracted.parent / self.name))
 
 
-def queue_loop(stop: Event) -> None:
+def _run_mokuro(chapter: Path | str) -> None:
     from mokuro.run import run  # slow
+    with wakepy.keep.running():
+        # Will continue any uncompleted work or exit early if already processed
+        run(str(chapter), disable_confirmation=True, legacy_html=False)
+
+
+def queue_loop(stop: Event) -> None:
     current: tuple[MPath, multiprocessing.Process] | None = None
 
     while not stop.is_set():
@@ -300,10 +307,7 @@ def queue_loop(stop: Event) -> None:
         if not current and OCR_QUEUE:
             chapter = OCR_QUEUE[0].unextracted
             proc = multiprocessing.Process(
-                target=run,  # maintains a cache, exits early if already OCR'ed
-                args=[str(chapter)],
-                kwargs={"disable_confirmation": True, "legacy_html": False},
-                daemon=True,
+                target=_run_mokuro, args=[chapter], daemon=True,
             )
             proc.start()
             current = (chapter, proc)

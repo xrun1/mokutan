@@ -9,6 +9,7 @@ dependencies = [
     "docopt-ng>=0.9.0",
     "natsort>=8.4.0",
     "mokuro>=0.2.2",
+    "wakepy>=0.10.2.post1",
 ]
 
 [dependency-groups]
