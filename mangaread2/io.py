@@ -211,8 +211,11 @@ class MPath(Path):
         page_w, page_h = page["img_width"], page["img_height"]
 
         for block in page["blocks"]:
-            # left, top, right, bottom = block["box"]
-            lines, coords = block["lines"], block["lines_coords"]
+            lines: list[str] = block["lines"]
+            coords: list[list[list[float]]] = block["lines_coords"]
+            if block["vertical"]:
+                lines.reverse()
+                coords.reverse()
 
             boxes = []
             prev_start = prev_end = Point(math.inf, math.inf)
@@ -225,12 +228,12 @@ class MPath(Path):
                 if block["vertical"]:
                     new_box = (
                         abs(start.y - prev_start.y) > page_h / 100 or
-                        abs(end.x - prev_start.x) > page_w / 50
+                        abs(start.x - prev_end.x) > page_w / 20
                     )
                 else:
                     new_box = (
-                        abs(prev_start.x - start.x) > page_w / 100 or
-                        abs(prev_end.y - start.y) > page_h / 100
+                        abs(start.x - prev_start.x) > page_w / 100 or
+                        abs(start.y - prev_end.y) > page_h / 100
                     )
 
                 if new_box:
@@ -245,13 +248,8 @@ class MPath(Path):
                 box.lines.append(line)
                 box.x = min(box.x, start.x)
                 box.y = min(box.y, start.y)
-
-                if box.vertical:
-                    box.w += end.x - start.x
-                    box.h = max(box.h, end.y - start.y)
-                else:
-                    box.w = max(box.w, end.x - start.x)
-                    box.h += end.y - start.y
+                box.w = max(box.w, end.x - box.x)
+                box.h = max(box.h, end.y - box.y)
 
                 prev_start, prev_end = start, end
 
@@ -260,6 +258,8 @@ class MPath(Path):
                 box.y /= page_h
                 box.w /= page_w
                 box.h /= page_h
+                if box.vertical:
+                    box.lines.reverse()
                 yield box
 
     def _sibling_chapters(self) -> tuple[list[Self], int]:

@@ -2,3 +2,4 @@
 - Use long polling instead of constant refreshes
 - Show something on browse page when queued
 - Fix recurse ocr behavior
+- Fonts
