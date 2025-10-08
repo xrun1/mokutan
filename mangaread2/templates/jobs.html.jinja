@@ -22,7 +22,7 @@
             <th>Actions</th>
         </tr>
 
-        {% for path in queue %}
+        {% for path in queue.copy() %}
             <tr>
                 <td>
                     <a id="{{to_anchor(path)}}" href="{{to_url(path)}}">
