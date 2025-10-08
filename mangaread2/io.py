@@ -49,6 +49,8 @@ class OCRBox:
     y: float = 0
     w: float = 0
     h: float = 0
+    image_w: int = 0
+    image_h: int = 0
     vertical: bool = False
     font_size: int = 0
     lines: list[str] = field(default_factory=list)
@@ -240,8 +242,10 @@ class MPath(Path):
                     boxes.append(OCRBox(
                         x=start.x,
                         y=start.y,
+                        image_w=page["img_width"],
+                        image_h=page["img_height"],
                         vertical=block["vertical"],
-                        font_size=block["font_size"] / 14,
+                        font_size=block["font_size"],
                     ))
 
                 box = boxes[-1]

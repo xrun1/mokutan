@@ -45,6 +45,7 @@ h4 a {
 .page {
     position: relative;
     display: inline-block;
+    overflow-x: auto;
 }
 
 .page p {
@@ -60,7 +61,6 @@ h4 a {
     border: 1rem solid transparent;
     outline: 1px solid black;
     translate: -1rem -1rem;
-    overflow-x: auto;
 
     &:hover {
         opacity: 1;
