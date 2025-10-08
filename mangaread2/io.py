@@ -311,7 +311,7 @@ def trim_archive_cache(stop: Event) -> None:
 
     while not stop.is_set():
         long_ago = datetime.now() - timedelta(hours=2)
-        for folder, date in LAST_ARCHIVE_ACCESSES.items():
+        for folder, date in LAST_ARCHIVE_ACCESSES.copy().items():
             if date < long_ago:
                 shutil.rmtree(folder, ignore_errors=True)
                 del LAST_ARCHIVE_ACCESSES[folder]
