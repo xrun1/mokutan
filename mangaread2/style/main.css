@@ -135,3 +135,7 @@ tr:nth-child(odd) {
 #empty-queue {
     opacity: 0.7;
 }
+
+span[disabled] {
+    opacity: 0.6;
+}

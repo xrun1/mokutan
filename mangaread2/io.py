@@ -173,6 +173,10 @@ class MPath(Path):
         return "/".join(map(str, self.ocr_progress))
 
     @property
+    def ocr_can_begin(self) -> bool:
+        return not (self.ocr_paused or self.ocr_running)
+
+    @property
     def ocr_paused(self) -> bool:
         return pause_queue and bool(OCR_QUEUE) and OCR_QUEUE[0] == self
 

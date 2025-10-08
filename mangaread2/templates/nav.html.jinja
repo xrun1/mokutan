@@ -25,20 +25,27 @@
     <details open>
         <summary>OCR</summary>
         <form action="/ocr/start{{to_url(path)}}">
-            <input type=hidden name=referer value="{{request.url}}">
-            <label>
-                <input type=checkbox name=keep_going value=1>
-                Scan next chapters/folders too
-            </label>
-            <label>
-                <input type=checkbox name=recursive value=1>
-                Recurse down subfolders
-            </label>
-            <label>
-                <input type=checkbox name=prioritize value=1>
-                Add to front of the queue
-            </label>
-            <button type=submit>Start</button>&emsp;
+            <span {{"" if path.ocr_can_begin else "disabled"}}>
+                <input type=hidden name=referer value="{{request.url}}">
+                <label>
+                    <input
+                        type=checkbox
+                        name=keep_going
+                        value=1
+                        {{"" if path.next_chapter else "disabled"}}
+                    >
+                    Scan next chapters/folders too
+                </label>
+                <label>
+                    <input type=checkbox name=recursive value=1>
+                    Recurse down subfolders
+                </label>
+                <label>
+                    <input type=checkbox name=prioritize value=1>
+                    Add to front of the queue
+                </label>
+                <button type=submit>Start</button>&emsp;
+            </span>
 
             {% if path.ocr_running %}
                 <span class=progress>⏵ {{path.ocr_progress_text}}</span>&emsp;
