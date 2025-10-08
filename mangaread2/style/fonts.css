@@ -1,0 +1,10 @@
+:root {
+    --sans:
+        "Source Han Sans JP VF", "Noto Sans JP", "Hiragino Sans",
+        "Meiryo", "MS Gothic", sans-serif;
+}
+
+@font-face {
+    font-family: "Source Han Sans JP VF";
+    src: url("./SourceHanSansJP-VF.otf") format("opentype");
+}

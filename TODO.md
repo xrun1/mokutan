@@ -2,4 +2,4 @@
 - Use long polling instead of constant refreshes
 - Show something on browse page when queued
 - Fix recurse ocr behavior
-- Fonts
+- Use one mokuro process, watch the filesystem to notice when a job ends
