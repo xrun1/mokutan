@@ -338,7 +338,7 @@ async def start_ocr(
     referer: str = "/",
 ) -> Response:
     job = MPath(chapter).unextracted
-    jobs = job.next_chapters if keep_going else [job]
+    jobs = [job, *job.next_chapters] if keep_going else [job]
     jobs = flatten(f.glob("**/") if recursive else [f] for f in jobs)
     (OCR_QUEUE.extendleft if prioritize else OCR_QUEUE.extend)(jobs)
     return RedirectResponse(url=referer, status_code=status.HTTP_303_SEE_OTHER)
