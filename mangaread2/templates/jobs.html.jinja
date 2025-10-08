@@ -24,7 +24,11 @@
 
         {% for path in queue %}
             <tr>
-                <td>{{path}}</td>
+                <td>
+                    <a id="{{to_anchor(path)}}" href="{{to_url(path)}}">
+                        {{path}}
+                    </a>
+                </td>
                 <td>
                     {% if path.ocr_paused %}
                         ⏸
