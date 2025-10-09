@@ -129,6 +129,8 @@ class MPath(Path):
 
     @property
     def images(self) -> list[Path]:
+        if not self.is_dir():
+            return []
         return [p for p in get_sorted_dir(self) if is_web_image(p)]
 
     @property

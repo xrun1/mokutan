@@ -81,6 +81,15 @@ h4 a {
         text-decoration: underline;
         text-decoration-color: crimson;
         margin: 1.5rem 0;
+        display: inline;
+    }
+
+    > span[title$="OCR'ed"] {
+        white-space: nowrap;
+    }
+
+    > span[title$="OCR'ed"][title^="0/"] {
+        color: gray;
     }
 
     > img {
