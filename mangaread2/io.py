@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 import json
 import math
 import multiprocessing
@@ -276,14 +277,14 @@ class MPath(Path):
         return (chapters, chapters.index(self.unextracted.parent / self.name))
 
 
-def _run_mokuro(chapter: Path | str) -> None:
-    from mokuro.run import run  # slow
+def _run_mokuro(run: Callable[..., None], chapter: Path | str) -> None:
     with wakepy.keep.running():
         # Will continue any uncompleted work or exit early if already processed
         run(str(chapter), disable_confirmation=True, legacy_html=False)
 
 
 def queue_loop(stop: Event) -> None:
+    from mokuro.run import run  # slow
     current: tuple[MPath, multiprocessing.Process] | None = None
 
     while not stop.is_set():
@@ -311,7 +312,7 @@ def queue_loop(stop: Event) -> None:
         if not current and OCR_QUEUE:
             chapter = OCR_QUEUE[0].unextracted
             proc = multiprocessing.Process(
-                target=_run_mokuro, args=[chapter], daemon=True,
+                target=_run_mokuro, args=[run, chapter], daemon=True,
             )
             proc.start()
             current = (chapter, proc)
