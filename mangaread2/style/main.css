@@ -140,6 +140,11 @@ h4 a {
     margin: auto;
 }
 
+#jobs > a {
+    text-decoration: none;
+    padding: 0 0.75rem;
+}
+
 #jobs > table {
     margin-top: 2rem;
     border: 1px solid hsl(55, 100%, 93%, 0.2);
