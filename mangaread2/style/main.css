@@ -1,11 +1,18 @@
 @import "fonts.css";
 
+:root {
+    --backgrounds: black;
+    --borders: #333;
+    --text: darkgray;
+    --accent: crimson;
+}
+
 html {
     font-size: 62.5%;
 }
 
 body {
-    background: black;
+    background: var(--backgrounds);
     color: lightyellow;
     text-align: center;
     font-family: var(--sans);
@@ -13,11 +20,11 @@ body {
 }
 
 :focus-visible {
-    outline: 1px solid crimson;
+    outline: 1px solid var(--accent);
 }
 
 nav, h4 {
-    color: gray;
+    color: var(--text);
     word-wrap: break-word;
 }
 
@@ -27,18 +34,18 @@ nav a {
 
 img {
     width: 100%;
-    outline: 1px solid #333;
+    outline: 1px solid var(--borders);
     user-select: none;
 }
 
 a {
-    color: crimson;
+    color: var(--accent);
 }
 
 h4 a {
-    color: gray;
+    color: var(--text);
     text-decoration: none;
-    border: 1px solid #333;
+    border: 1px solid var(--borders);
     padding: 0.3rem 0.75rem;
 }
 
@@ -68,9 +75,11 @@ h4 a {
 }
 
 #non-images > a {
+    --height: 40rem;
+
     display: inline-block;
     vertical-align: bottom;
-    scroll-margin-top: calc(50vh - 40rem / 2 - 3rem - 1.6rem);
+    scroll-margin-top: calc(50vh - var(--height) / 2 - 3rem - 1.6rem);
     width: 25%;
     min-width: min(calc(100% - 2rem), 25rem);
     max-width: 60rem;
@@ -79,7 +88,7 @@ h4 a {
 
     & > h4 {
         text-decoration: underline;
-        text-decoration-color: crimson;
+        text-decoration-color: var(--accent);
         margin: 1.5rem 0;
         display: inline;
     }
@@ -89,21 +98,21 @@ h4 a {
     }
 
     > span[title$="OCR'ed"][title^="0/"] {
-        color: gray;
+        color: var(--text);
     }
 
     > img {
         position: relative;
         min-width: 100%;
-        height: 40rem;
-        min-height: 40rem;
+        height: var(--height);
+        min-height: var(--height);
         object-fit: contain;
         outline: none;
 
         &:after {
             text-decoration: none;
             font-size: 10rem;
-            line-height: 40rem;
+            line-height: var(--height);
 
             display: block;
             position: absolute;
@@ -111,11 +120,11 @@ h4 a {
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: black;
+            background-color: var(--backgrounds);
             text-align: center;
             content: attr(alt);
             box-sizing: border-box;
-            border: 1px solid #333;
+            border: 1px solid var(--borders);
         }
     }
 }
@@ -130,7 +139,7 @@ h4 a {
 }
 
 #jobs td:nth-child(1) a {
-    color: lightgray;
+    color: var(--text);
     text-decoration: none;
     scroll-margin-top: calc(50vh - 2rem);
 }
