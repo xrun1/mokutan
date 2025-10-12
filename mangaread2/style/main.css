@@ -43,10 +43,13 @@ a {
 }
 
 h4 a {
-    color: var(--text);
     text-decoration: none;
     border: 1px solid var(--borders);
     padding: 0.3rem 0.75rem;
+
+    &:first-child {
+        color: var(--text);
+    }
 }
 
 .page {

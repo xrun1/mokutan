@@ -5,26 +5,23 @@
     <meta charset=utf-8>
     <meta name=viewport content="width=device-width">
     <meta name=referrer content=strict-origin>
-    {% if path.ocr_running %}
-       <meta http-equiv=refresh content=5>
-    {% endif %}
 
     <link rel=stylesheet href=/style/main.css>
 </head>
 
 <body>
     {% include "nav.html.jinja" %}
+    {% set progress = path.ocr_progress %}
 
     <div id=non-images>
         {% for path in path.non_images %}
             <a id={{to_anchor(path)}} href="{{to_url(path)}}">
                 <h4>{{path.name}}</h4>&#32;
 
-                {% set prog = path.ocr_progress %}
                 {% set prog_txt = path.ocr_progress_text %}
                 {% set prog_shown = prog_txt %}
-                {% if prog[0] == prog[1] or not prog[0] %}
-                    {% set prog_shown = prog[1] %}
+                {% if progress[0] == progress[1] or not progress[0] %}
+                    {% set prog_shown = progress[1] %}
                 {% endif %}
                 {% set icon = "🗏 " %}
                 {% if path.ocr_running %} {% set icon = "⏵ " %} {% endif %}
@@ -42,7 +39,15 @@
 
     {% for img in path.images %}
         {% set anchor = img.stem.replace(' ', '') %}
-        <h4><a href="#{{to_anchor(img)}}">{{img.name}}</a></h4>
+        <h4>
+            <a href="#{{to_anchor(img)}}">{{img.name}}</a>
+            {% if loop.index > progress[0] %}
+                <a
+                    href="{{force_refresh_url}}#{{to_anchor(img)}}"
+                    title="OCR in progress, click to refresh"
+                >⟳</a>
+            {% endif %}
+        </h4>
 
         <div class=page>
             <img id="{{to_anchor(img)}}" src="{{to_url(img)}}" loading=lazy>
