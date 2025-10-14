@@ -26,6 +26,7 @@ from .utils import (
     TEMP,
     is_supported_archive,
     is_web_image,
+    log,
 )
 
 if TYPE_CHECKING:
@@ -116,7 +117,7 @@ class MPath(Path):
     @property
     def previous_chapter(self) -> Self | None:
         chapters, own_idx = self._sibling_chapters()
-        return chapters[own_idx - 1] if own_idx else None
+        return chapters[own_idx - 1] if own_idx > 0 else None
 
     @property
     def next_chapters(self) -> list[Self]:
@@ -160,13 +161,17 @@ class MPath(Path):
 
     @property
     def ocr_progress(self) -> tuple[int, int]:
-        if is_supported_archive(self):
-            with ZipFile(self) as zf:
-                total = len([
-                    f for f in zf.filelist if is_web_image(f.orig_filename)
-                ])
-        else:
-            total = len(self.images)
+        try:
+            if is_supported_archive(self):
+                with ZipFile(self) as zf:
+                    total = len([
+                        f for f in zf.filelist if is_web_image(f.orig_filename)
+                    ])
+            else:
+                total = len(self.images)
+        except OSError:
+            log.exception("Error trying to gauge OCR progress for %s", self)
+            return (0, 0)
 
         if self.ocr_json_file.exists():
             return (total, total)
