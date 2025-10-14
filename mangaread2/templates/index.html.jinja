@@ -18,6 +18,7 @@
             <a id={{to_anchor(path)}} href="{{to_url(path)}}">
                 <h4>{{path.name}}</h4>&#32;
 
+                {% set progress = path.ocr_progress %}
                 {% set prog_txt = path.ocr_progress_text %}
                 {% set prog_shown = prog_txt %}
                 {% if progress[0] == progress[1] or not progress[0] %}
