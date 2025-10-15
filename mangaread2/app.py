@@ -1,18 +1,15 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
 import os
 from abc import ABC
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-import random
 from threading import Event
 from typing import TYPE_CHECKING, ClassVar
 from urllib.parse import parse_qs
 
-from fastapi.datastructures import URL
 import jinja2
 from fastapi import FastAPI, Request, status
 from fastapi.responses import (
@@ -36,6 +33,8 @@ from .utils import (
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+    from fastapi.datastructures import URL
 
 LOADER = jinja2.PackageLoader(NAME, "templates")
 ENV = jinja2.Environment(loader=LOADER, autoescape=jinja2.select_autoescape())
