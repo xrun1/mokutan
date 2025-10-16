@@ -10,6 +10,7 @@ dependencies = [
     "natsort>=8.4.0",
     "mokuro>=0.2.2",
     "wakepy>=0.10.2.post1",
+    "fugashi[unidic]>=1.5.1",
 ]
 
 [dependency-groups]
@@ -83,6 +84,7 @@ ignore = [
     "PLW2901",  # redefining loop variable
     "TRY003",  # passing messages to exception constructors
     "TRY301",  # raising within try block
+    "ISC003",  # concatenating strings explicitely
 ]
 
 [tool.ruff.lint.flake8-annotations]

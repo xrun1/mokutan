@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, ClassVar
 from urllib.parse import parse_qs
 
 import jinja2
+import unidic
 from fastapi import FastAPI, Request, status
 from fastapi.responses import (
     FileResponse,
@@ -111,6 +112,7 @@ class Jobs(Page):
 
 @asynccontextmanager
 async def life(_app: FastAPI):
+    io.load_dict_data()
     tasks = [
         asyncio.create_task(asyncio.to_thread(catch_log_exceptions(f), EXIT))
         for f in (io.queue_loop, io.trim_archive_cache)

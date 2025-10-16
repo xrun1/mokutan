@@ -96,7 +96,7 @@ h4 a {
         display: inline;
     }
 
-    > span[title$="OCR'ed"] {
+    > span[title$="OCR'ed"], > span[title^="Average difficulty"] {
         white-space: nowrap;
     }
 

@@ -1,32 +1,38 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
 import json
 import math
 import multiprocessing
 import os
 import shutil
 import time
-from collections import defaultdict, deque
+from collections import Counter, defaultdict, deque
+from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from importlib import resources
+from io import BytesIO
 from itertools import starmap
 from pathlib import Path
 from typing import TYPE_CHECKING, Self
 from uuid import uuid4
 from zipfile import ZipFile
 
+import fugashi
+import unidic
 import wakepy
 from fastapi.responses import RedirectResponse
 from natsort import natsorted
 
+from . import misc
 from .utils import (
     TEMP,
     is_supported_archive,
     is_web_image,
     log,
+    script_difficulty,
 )
 
 if TYPE_CHECKING:
@@ -37,12 +43,16 @@ from fastapi import APIRouter, Response, status
 
 from .utils import Point, flatten, get_sorted_dir
 
+router = APIRouter(prefix="/ocr")
+
 OCR_QUEUE: deque[MPath] = deque()
 IGNORED_ARCHIVES: set[Path] = set()
 LAST_ARCHIVE_ACCESSES: dict[Path, datetime] = {}
 LOCKS: defaultdict[Path, asyncio.Lock] = defaultdict(asyncio.Lock)
 pause_queue: bool = False
-router = APIRouter(prefix="/ocr")
+
+jp_parser: fugashi.Tagger | None = None  # dict may not be downloaded yet
+jp_freqs: dict[str | tuple[str, str], int] = {}
 
 
 @dataclass(slots=True)
@@ -141,6 +151,41 @@ class MPath(Path):
                 is_web_image(p) or p.suffix == ".mokuro" or p.name == "_ocr"
             )
         ]
+
+    @property
+    def difficulty(self) -> tuple[int, float] | None:
+        if not (jp_parser and jp_freqs and self.ocr_json_file.exists()):
+            return None
+
+        ocr_data = json.load(self.ocr_json_file.open(encoding="utf-8"))
+        text = "\n\n".join(
+            "\n".join(box["lines"])
+            for page in ocr_data["pages"]
+            for box in page["blocks"]
+        )
+        if not text.strip():
+            return None
+        terms = jp_parser(text)
+        unique_vocab = {t.feature.orthBase: t for t in terms}
+        counts = Counter(t.feature.orthBase for t in terms)
+
+        def get_score(t: fugashi.fugashi.UnidicNode) -> float:
+            return (
+                (
+                    jp_freqs.get((t.feature.lemma, t.feature.orthBase)) or
+                    jp_freqs.get(t.feature.orthBase) or
+                    jp_freqs.get(t.feature.lemma) or
+                    1000
+                )
+                * script_difficulty(t.surface)
+                / max(1, counts[t.feature.orthBase])
+            )
+
+        score = sum(get_score(t) for t in unique_vocab.values())
+        avg_terms_per_page = len(terms) / len(ocr_data["pages"])
+        score /= len(unique_vocab)
+        score *= avg_terms_per_page
+        return (len(unique_vocab), score / 10000)
 
     @property
     def ocr_wip_dir(self) -> Self:
@@ -336,6 +381,37 @@ def trim_archive_cache(stop: Event) -> None:
                 shutil.rmtree(folder, ignore_errors=True)
                 del LAST_ARCHIVE_ACCESSES[folder]
         time.sleep(1)
+
+
+def load_dict_data() -> None:
+    if not Path(unidic.DICDIR).exists():
+        print(unidic.DICDIR)
+        from unidic.download import download_version
+        download_version()
+
+    global jp_parser  # noqa: PLW0603
+    jp_parser = fugashi.Tagger("-Owakati")
+
+    file = "JPDB_v2.2_Frequency_Kana_2024-10-13.zip"
+    with (
+        ZipFile(BytesIO(resources.read_binary(misc, file))) as zf,
+        zf.open("term_meta_bank_1.json") as bank,
+    ):
+        raw = json.loads(bank.read().decode("utf-8"))
+
+    out = {}
+    for term, _, info in raw:
+        if (freq := info.get("value")):
+            k, v = (term, freq)
+        elif info["frequency"]["displayValue"].endswith("㋕"):
+            k, v = ((term, info["reading"]), info["frequency"]["value"])
+        else:
+            k, v = (term, info["frequency"]["value"])
+
+        if v < out.get(k, math.inf):
+            out[k] = v
+
+    jp_freqs.update(out)
 
 
 @router.get("/pause")

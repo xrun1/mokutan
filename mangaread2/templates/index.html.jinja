@@ -16,7 +16,7 @@
     <div id=non-images>
         {% for path in path.non_images %}
             <a id={{to_anchor(path)}} href="{{to_url(path)}}">
-                <h4>{{path.name}}</h4>&#32;
+                <h4>{{path.name}}</h4>
 
                 {% set progress = path.ocr_progress %}
                 {% set prog_txt = path.ocr_progress_text %}
@@ -28,6 +28,13 @@
                 {% if path.ocr_running %} {% set icon = "⏵ " %} {% endif %}
                 {% if path.ocr_paused %} {% set icon = "⏸ " %} {% endif %}
                 <span title="{{prog_txt}} OCR'ed">{{icon}}{{prog_shown}}</span>
+
+                {% set diff = path.difficulty %}
+                {% if diff %}
+                    <span title="Average difficulty in {{diff[0]}} terms">
+                        🗲&hairsp;{{diff[1]|int}}
+                    </span>
+                {% endif %}
 
                 <img
                     alt="{{'🗀' if path.is_dir() else '🗎'}}"

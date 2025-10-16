@@ -223,6 +223,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/84/a9/72a7c8261ddceb0fbaee8fe075d4acd9023504c8fa8cbea2cf6140892040/fugashi-1.5.1-cp313-cp313-win_amd64.whl", hash = "sha256:adf1646103151af5c0b78f11fd01e145c506774609243935c0978606e4a96ad3", size = 513083 },
 ]
 
+[package.optional-dependencies]
+unidic = [
+    { name = "unidic" },
+]
+
 [[package]]
 name = "h11"
 version = "0.16.0"
@@ -413,6 +418,7 @@ source = { editable = "." }
 dependencies = [
     { name = "docopt-ng" },
     { name = "fastapi" },
+    { name = "fugashi", extra = ["unidic"] },
     { name = "jinja2" },
     { name = "mokuro" },
     { name = "natsort" },
@@ -436,6 +442,7 @@ dev = [
 requires-dist = [
     { name = "docopt-ng", specifier = ">=0.9.0" },
     { name = "fastapi", specifier = ">=0.115.12" },
+    { name = "fugashi", extras = ["unidic"], specifier = ">=1.5.1" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "mokuro", specifier = ">=0.2.2" },
     { name = "natsort", specifier = ">=8.4.0" },
@@ -923,6 +930,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/f0/77/bc6f92a3e8e6e46c0ca78abfffec0037845800ea38c73483760362804c41/pillow-11.3.0-cp314-cp314t-win32.whl", hash = "sha256:118ca10c0d60b06d006be10a501fd6bbdfef559251ed31b794668ed569c87e12", size = 6377370 },
     { url = "https://files.pythonhosted.org/packages/4a/82/3a721f7d69dca802befb8af08b7c79ebcab461007ce1c18bd91a5d5896f9/pillow-11.3.0-cp314-cp314t-win_amd64.whl", hash = "sha256:8924748b688aa210d79883357d102cd64690e56b923a186f35a82cbc10f997db", size = 7121500 },
     { url = "https://files.pythonhosted.org/packages/89/c7/5572fa4a3f45740eaab6ae86fcdf7195b55beac1371ac8c619d880cfe948/pillow-11.3.0-cp314-cp314t-win_arm64.whl", hash = "sha256:79ea0d14d3ebad43ec77ad5272e6ff9bba5b679ef73375ea760261207fa8e0aa", size = 2512835 },
+]
+
+[[package]]
+name = "plac"
+version = "1.4.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/23/09/26ef2d614cabdcc52a7f383d0dc7967bf46be3c9700898c594e37b710c3d/plac-1.4.5.tar.gz", hash = "sha256:5f05bf85235c017fcd76c73c8101d4ff8e96beb3dc58b9a37de49cac7de82d14", size = 38988 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/15/36/38676114a0dbee137ec366daa86603d667a07e9a52667d5ebf5c580100ba/plac-1.4.5-py2.py3-none-any.whl", hash = "sha256:87187786b4e446688b1cf5112e18fed8a23ab3b316c25fe91266a10bd1736b16", size = 22468 },
 ]
 
 [[package]]
@@ -1662,6 +1678,18 @@ wheels = [
 ]
 
 [[package]]
+name = "unidic"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "plac" },
+    { name = "requests" },
+    { name = "tqdm" },
+    { name = "wasabi" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5a/09/271dfbf8d5b56adddc70e30fa94249f5d3ab35f615bf278d65258045564a/unidic-1.1.0.tar.gz", hash = "sha256:0ab91c05de342c84d2a6314901fd3afb9061ecd7534dd4a0431dccbb87d921b7", size = 7688 }
+
+[[package]]
 name = "unidic-lite"
 version = "1.0.8"
 source = { registry = "https://pypi.org/simple" }
@@ -1699,6 +1727,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/e8/26/caf88d7975e1b6e181d91cbb624b63b3a455231aff50eb2cba206c7e7bd9/wakepy-0.10.2.post1.tar.gz", hash = "sha256:c968b8b7061d30ab193747ce7fb5226bc61c26b005e4a2792a19211f83cf71ac", size = 159393 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/41/f0/1816a95fb64a574d30160e1dccc2fdee00530c9f0fc119ae8286b5e7bd02/wakepy-0.10.2.post1-py3-none-any.whl", hash = "sha256:c3fd13bb6b362decd0a2d83807fb3146a3ef5ca9b1959241bb0c06d0b35b029e", size = 56499 },
+]
+
+[[package]]
+name = "wasabi"
+version = "0.10.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/69/41/0c31737ee1a29c8b829690ebb4ab988b1f489aa2c3efa115a732a9dd7997/wasabi-0.10.1.tar.gz", hash = "sha256:c8e372781be19272942382b14d99314d175518d7822057cb7a97010c4259d249", size = 28380 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/34/74/bd566f876c2de097e75d525c2696fb9829009987a0d93a4fb3576778a0a8/wasabi-0.10.1-py3-none-any.whl", hash = "sha256:fe862cc24034fbc9f04717cd312ab884f71f51a8ecabebc3449b751c2a649d83", size = 26075 },
 ]
 
 [[package]]
