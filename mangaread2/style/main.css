@@ -65,7 +65,8 @@ h4 a {
     text-align: left;
     white-space: nowrap;
     line-height: 1.1em;
-    background: hsl(55 100% 95%);
+    /* background: hsl(55 100% 95%); */
+    background: white;
     color: black;
     margin: 0;
     border: 1rem solid transparent;
@@ -74,6 +75,14 @@ h4 a {
 
     &:hover {
         opacity: 1;
+    }
+
+    & .anki-mature {
+        color: forestgreen;
+    }
+
+    & .anki-young {
+        color: chocolate;
     }
 }
 

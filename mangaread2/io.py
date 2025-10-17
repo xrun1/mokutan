@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import html
 import json
 import math
 import multiprocessing
@@ -58,6 +59,7 @@ jp_freqs: dict[str | tuple[str, str], int] = {}
 http = httpx.AsyncClient(follow_redirects=True)
 anki_filters = [("Japanese::02 - Kaishi 1.5k", "Kaishi 1.5k", "Word")]
 anki_intervals: dict[str, timedelta] = {}
+ANKI_MATURE_THRESHOLD = timedelta(days=21)
 
 
 @dataclass(slots=True)
@@ -188,7 +190,7 @@ class MPath(Path):
                 nonlocal anki_bonus
                 intervals.append(iv)
                 new_base = 10_000
-                new_base -= new_base * (iv / timedelta(days=21))
+                new_base -= new_base * (iv / ANKI_MATURE_THRESHOLD)
                 new_base = max(new_base, 0)
                 anki_bonus += base - new_base
                 base = new_base
@@ -209,7 +211,7 @@ class MPath(Path):
             len(unique_vocab),
             adjust(score),
             len(intervals),
-            len([iv for iv in intervals if iv.days >= 21]),
+            len([iv for iv in intervals if iv >= ANKI_MATURE_THRESHOLD]),
             adjust(anki_bonus),
             avg_terms_per_page,
         )
@@ -329,7 +331,7 @@ class MPath(Path):
                     ))
 
                 box = boxes[-1]
-                box.lines.append(line)
+                box.lines.append("".join(mark_anki_known_terms(line)))
                 box.x = min(box.x, start.x)
                 box.y = min(box.y, start.y)
                 box.w = max(box.w, end.x - box.x)
@@ -389,6 +391,20 @@ async def load_anki_data() -> None:
 
                 if k not in anki_intervals or anki_intervals[k] < v:
                     anki_intervals[k] = v
+
+
+def mark_anki_known_terms(text: str) -> Iterable[str]:
+    assert jp_parser
+    for part in jp_parser(text):
+        iv = anki_intervals.get(part.feature.orthBase)
+        clean = html.escape(part.surface)
+
+        if not iv:
+            yield clean
+        elif iv < ANKI_MATURE_THRESHOLD:
+            yield f"<span class=anki-young>{clean}</span>"
+        else:
+            yield f"<span class=anki-mature>{clean}</span>"
 
 
 def queue_loop(stop: Event) -> None:
