@@ -16,11 +16,12 @@ from importlib import resources
 from io import BytesIO
 from itertools import starmap
 from pathlib import Path
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Any, Self
 from uuid import uuid4
 from zipfile import ZipFile
 
 import fugashi
+import httpx
 import unidic
 import wakepy
 from fastapi.responses import RedirectResponse
@@ -53,6 +54,10 @@ pause_queue: bool = False
 
 jp_parser: fugashi.Tagger | None = None  # dict may not be downloaded yet
 jp_freqs: dict[str | tuple[str, str], int] = {}
+
+http = httpx.AsyncClient(follow_redirects=True)
+anki_filters = [("Japanese::02 - Kaishi 1.5k", "Kaishi 1.5k", "Word")]
+anki_intervals: dict[str, timedelta] = {}
 
 
 @dataclass(slots=True)
@@ -153,7 +158,7 @@ class MPath(Path):
         ]
 
     @property
-    def difficulty(self) -> tuple[int, float] | None:
+    def difficulty(self) -> tuple[int, float, int, int, float, float] | None:
         if not (jp_parser and jp_freqs and self.ocr_json_file.exists()):
             return None
 
@@ -168,24 +173,46 @@ class MPath(Path):
         terms = jp_parser(text)
         unique_vocab = {t.feature.orthBase: t for t in terms}
         counts = Counter(t.feature.orthBase for t in terms)
+        intervals: list[timedelta] = []
+        anki_bonus = 0
 
         def get_score(t: fugashi.fugashi.UnidicNode) -> float:
+            base = 50_000 + (
+                jp_freqs.get((t.feature.lemma, t.feature.orthBase)) or
+                jp_freqs.get(t.feature.orthBase) or
+                jp_freqs.get(t.feature.lemma) or
+                1000
+            )
+
+            if (iv := anki_intervals.get(t.feature.orthBase)):
+                nonlocal anki_bonus
+                intervals.append(iv)
+                new_base = 10_000
+                new_base -= new_base * (iv / timedelta(days=21))
+                new_base = max(new_base, 0)
+                anki_bonus += base - new_base
+                base = new_base
+
             return (
-                (
-                    jp_freqs.get((t.feature.lemma, t.feature.orthBase)) or
-                    jp_freqs.get(t.feature.orthBase) or
-                    jp_freqs.get(t.feature.lemma) or
-                    1000
-                )
+                base
                 * script_difficulty(t.surface)
                 / max(1, counts[t.feature.orthBase])
             )
 
         score = sum(get_score(t) for t in unique_vocab.values())
         avg_terms_per_page = len(terms) / len(ocr_data["pages"])
-        score /= len(unique_vocab)
-        score *= avg_terms_per_page
-        return (len(unique_vocab), score / 10000)
+
+        def adjust(score: float) -> float:
+            return score / len(unique_vocab) * avg_terms_per_page / 20_000
+
+        return (
+            len(unique_vocab),
+            adjust(score),
+            len(intervals),
+            len([iv for iv in intervals if iv.days >= 21]),
+            adjust(anki_bonus),
+            avg_terms_per_page,
+        )
 
     @property
     def ocr_wip_dir(self) -> Self:
@@ -333,6 +360,35 @@ def _run_mokuro(run: Callable[..., None], chapter: Path | str) -> None:
     with wakepy.keep.running():
         # Will continue any uncompleted work or exit early if already processed
         run(str(chapter), disable_confirmation=True, legacy_html=False)
+
+
+async def load_anki_data() -> None:
+    async def do(action: str, **params: Any) -> Any:
+        api = "http://localhost:8765"
+        body = {"action": action, "version": 6, "params": params}
+        got = (await http.post(api, json=body)).json()
+        if got["error"]:
+            raise RuntimeError(f"Anki: {action}: {params}: {got['error']}")
+        return got["result"]
+
+    assert jp_parser
+    anki_intervals.clear()
+
+    for deck, note_type, card_field in anki_filters:
+        query = f"deck:{json.dumps(deck)} note:{json.dumps(note_type)}"
+        ids: list[int] = await do("findCards", query=query)
+        info: list[dict[str, Any]] = await do("cardsInfo", cards=ids)
+
+        for card in info:
+            if (iv := card["interval"]) == 0:  # not learned
+                continue
+
+            for part in jp_parser(card["fields"][card_field]["value"]):
+                k = part.feature.orthBase
+                v = timedelta(seconds=iv) if iv < 0 else timedelta(days=iv)
+
+                if k not in anki_intervals or anki_intervals[k] < v:
+                    anki_intervals[k] = v
 
 
 def queue_loop(stop: Event) -> None:

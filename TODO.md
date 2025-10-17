@@ -2,5 +2,6 @@
 - Use long polling instead of constant refreshes
 - Show something on browse page when queued
 - Fix recurse ocr behavior
-- Use one mokuro process, watch the filesystem to notice when a job ends
-- check idle cpu usage
+
+- anki port/api key/decks config UI
+- check connection with proper api first
