@@ -56,6 +56,18 @@ pause_queue: bool = False
 jp_parser: fugashi.Tagger | None = None  # dict may not be downloaded yet
 jp_freqs: dict[str | tuple[str, str], int] = {}
 
+NON_CORE_POS1_DIFFICULTY_FACTORS = {
+    "助詞": 0,  # Particles
+    "補助記号": 0,  # Punctuation, brackets...
+    "記号": 0,  # Symbols
+    "空白": 0,  # Whitespace
+    "未知語": 0.1,  # Unknown/error
+    "感動詞": 0.4,  # Interjections (あっ、えっ...)
+    "接頭辞": 0.8,  # Prefixes
+    "接尾辞": 0.8,  # Suffixes
+    "助動詞": 0.8,  # Helper verbs
+}
+
 http = httpx.AsyncClient(follow_redirects=True)
 anki_filters = [("Japanese::02 - Kaishi 1.5k", "Kaishi 1.5k", "Word")]
 anki_intervals: dict[str, timedelta] = {}
@@ -197,6 +209,7 @@ class MPath(Path):
 
             return (
                 base
+                * NON_CORE_POS1_DIFFICULTY_FACTORS.get(t.feature.pos1, 1)
                 * script_difficulty(t.surface)
                 / max(1, counts[t.feature.orthBase])
             )
@@ -397,8 +410,9 @@ def mark_anki_known_terms(text: str) -> Iterable[str]:
     for part in jp_parser(text):
         iv = anki_intervals.get(part.feature.orthBase)
         clean = html.escape(part.surface)
+        pos1 = part.feature.pos1
 
-        if iv is None:
+        if iv is None or pos1 in NON_CORE_POS1_DIFFICULTY_FACTORS:
             yield clean
         elif not iv:
             yield f"<span class=anki-new>{clean}</span>"
