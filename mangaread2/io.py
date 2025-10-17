@@ -382,8 +382,7 @@ async def load_anki_data() -> None:
         info: list[dict[str, Any]] = await do("cardsInfo", cards=ids)
 
         for card in info:
-            if (iv := card["interval"]) == 0:  # not learned
-                continue
+            iv = card["interval"]
 
             for part in jp_parser(card["fields"][card_field]["value"]):
                 k = part.feature.orthBase
@@ -399,8 +398,10 @@ def mark_anki_known_terms(text: str) -> Iterable[str]:
         iv = anki_intervals.get(part.feature.orthBase)
         clean = html.escape(part.surface)
 
-        if not iv:
+        if iv is None:
             yield clean
+        elif not iv:
+            yield f"<span class=anki-new>{clean}</span>"
         elif iv < ANKI_MATURE_THRESHOLD:
             yield f"<span class=anki-young>{clean}</span>"
         else:
