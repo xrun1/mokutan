@@ -20,11 +20,11 @@ from typing import TYPE_CHECKING, Any, Self
 from uuid import uuid4
 from zipfile import ZipFile
 
-from fastapi.datastructures import URL
 import fugashi
 import httpx
 import unidic
 import wakepy
+from fastapi.datastructures import URL
 from fastapi.responses import RedirectResponse
 from natsort import natsorted
 
