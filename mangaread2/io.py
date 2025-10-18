@@ -158,18 +158,24 @@ class MPath(Path):
         return next(iter(self.next_chapters), None)
 
     @property
-    def images(self) -> list[Path]:
+    def images(self) -> list[Self]:
         if not self.is_dir():
             return []
         return [p for p in get_sorted_dir(self) if is_web_image(p)]
 
-    @property
-    def non_images(self) -> list[Path]:
-        return [
+    def non_images(self, sort: str = "") -> list[Self]:
+        entries = [
             p for p in get_sorted_dir(self) if not (
                 is_web_image(p) or p.suffix == ".mokuro" or p.name == "_ocr"
             )
         ]
+        if sort == "m":
+            entries.sort(key=lambda e: e.stat().st_mtime)
+        elif sort == "d":
+            entries.sort(key=lambda e: (e.difficulty or (0, math.inf))[1])
+        elif sort == "p":
+            entries.sort(key=lambda e: len(e.images))
+        return entries
 
     @property
     def difficulty(self) -> tuple[int, float, int, int, float, float] | None:

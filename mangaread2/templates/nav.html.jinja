@@ -22,6 +22,34 @@
         {% endif %}
     </h2>
 
+    {% if (path.non_images() | length) > 1 %}
+        {% macro check(v) -%}{{"checked" if sort == v else ""}}{%- endmacro %}
+
+        <details open>
+            <summary>Sort by</summary>
+            <form action="">
+                <label>
+                    <input type=radio name=sort value="" {{check("")}}>
+                    Name
+                </label>
+                <label>
+                    <input type=radio name=sort value=m {{check("m")}}>
+                    Date modified
+                </label>
+                <label>
+                    <input type=radio name=sort value=p {{check("p")}}>
+                    Page count
+                </label>
+                <label>
+                    <input type=radio name=sort value=d {{check("d")}}>
+                    Difficulty
+                </label>
+                <button type=submit>Set</button>
+            </form>
+        </details>
+        <br>
+    {% endif %}
+
     <details open>
         <summary>OCR</summary>
         <form action="/ocr/start{{to_url(path)}}">

@@ -5,3 +5,5 @@
 
 - anki port/api key/decks config UI
 - check connection with proper api first
+- periodically reload anki data
+- handle connection failure

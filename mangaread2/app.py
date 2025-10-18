@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Event
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 from urllib.parse import parse_qs
 
 import jinja2
@@ -85,6 +85,7 @@ class Page(ABC):
 class Browse(Page):
     template: ClassVar[str] = "index.html.jinja"
     path: MPath
+    sort: str = ""
 
 
 @dataclass(slots=True)
@@ -161,7 +162,9 @@ async def thumbnail(path: Path | str, recurse: int = 2) -> Response:
 
 
 @app.get("/{path:path}")
-async def browse(request: Request, path: Path | str = "/") -> Response:
+async def browse(
+    request: Request, path: Path | str = "/", sort: str = "",
+) -> Response:
     if os.name == "nt" and str(path) in {"/", r"\\", ""}:
         return WindowsDrives(request).response
 
@@ -170,6 +173,6 @@ async def browse(request: Request, path: Path | str = "/") -> Response:
     if path.is_file():
         return FileResponse(path)
     if path.is_dir():
-        return Browse(request, MPath(path)).response
+        return Browse(request, MPath(path), sort).response
 
     return Response(status_code=404)

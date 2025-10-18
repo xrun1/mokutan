@@ -14,7 +14,7 @@
     {% set progress = path.ocr_progress %}
 
     <div id=non-images>
-        {% for path in path.non_images %}
+        {% for path in path.non_images(sort) %}
             <a id={{to_anchor(path)}} href="{{to_url(path)}}">
                 <h4>{{path.name}}</h4>
 
