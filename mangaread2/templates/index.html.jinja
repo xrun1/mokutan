@@ -15,7 +15,7 @@
 
     <div id=non-images>
         {% for path in path.non_images(sort) %}
-            <a id={{path.as_anchor}} href="{{path.url()}}">
+            <a id={{path.as_anchor}} href="{{path.url(sort=sort)}}">
                 <h4>{{path.name}}</h4>
 
                 {% set progress = path.ocr_progress %}

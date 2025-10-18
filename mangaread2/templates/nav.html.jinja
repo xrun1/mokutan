@@ -4,21 +4,26 @@
         {% if parent == path %}
             <a title="This PC" href="/">⭡</a>&#32;
         {% else %}
-            <a title=Parent href="{{parent.url()}}#{{path.as_anchor}}">
-                ⭡
-            </a>&#32;
+            <a
+                title=Parent
+                href="{{parent.url(sort=sort)}}#{{path.as_anchor}}"
+            >⭡</a>&#32;
         {% endif %}
 
         {% if path.previous_chapter(sort) %}
-            <a title=Previous href="{{path.previous_chapter(sort).url()}}">
-                ⭠
-            </a>&#32;
+            <a
+                title=Previous
+                href="{{path.previous_chapter(sort).url(sort=sort)}}"
+            >⭠</a>&#32;
         {% endif %}
 
         {{path.name or path}}&#32;
 
         {% if path.next_chapter(sort) %}
-            <a title=Next href="{{path.next_chapter(sort).url()}}">⭢</a>
+            <a
+                title=Next
+                href="{{path.next_chapter(sort).url(sort=sort)}}"
+            >⭢</a>
         {% endif %}
     </h2>
 
