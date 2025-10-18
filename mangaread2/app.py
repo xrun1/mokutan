@@ -67,7 +67,7 @@ class Page(ABC):
 
     @property
     def force_refresh_url(self) -> URL:
-        return self.request.url.replace_query_params(
+        return self.request.url.include_query_params(
             r=int((parse_qs(self.request.url.query).get("r") or ["0"])[0]) + 1,
         )
 
