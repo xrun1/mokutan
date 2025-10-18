@@ -15,7 +15,7 @@
 
     <div id=non-images>
         {% for path in path.non_images(sort) %}
-            <a id={{to_anchor(path)}} href="{{to_url(path)}}">
+            <a id={{path.as_anchor}} href="{{path.url}}">
                 <h4>{{path.name}}</h4>
 
                 {% set progress = path.ocr_progress %}
@@ -45,7 +45,7 @@ Anki decrease: {{dif[4]|int}} ({{(dif[4] / (dif[1] + dif[4]) * 100) | int}}%)
 
                 <img
                     alt="{{'🗀' if path.is_dir() else '🗎'}}"
-                    src="/thumbnail{{to_url(path)}}"
+                    src="/thumbnail{{path.url}}"
                     loading=lazy
                 >
             </a>
@@ -55,17 +55,17 @@ Anki decrease: {{dif[4]|int}} ({{(dif[4] / (dif[1] + dif[4]) * 100) | int}}%)
     {% for img in path.images %}
         {% set anchor = img.stem.replace(' ', '') %}
         <h4>
-            <a href="#{{to_anchor(img)}}">{{img.name}}</a>
+            <a href="#{{img.as_anchor}}">{{img.name}}</a>
             {% if loop.index > progress[0] %}
                 <a
-                    href="{{force_refresh_url}}#{{to_anchor(img)}}"
+                    href="{{force_refresh_url}}#{{img.as_anchor}}"
                     title="OCR in progress, click to refresh"
                 >⟳</a>
             {% endif %}
         </h4>
 
         <div class=page>
-            <img id="{{to_anchor(img)}}" src="{{to_url(img)}}" loading=lazy>
+            <img id="{{img.as_anchor}}" src="{{img.url}}" loading=lazy>
 
             {% for box in path.ocr_boxes(img) %}
                 <p style="

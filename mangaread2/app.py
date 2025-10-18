@@ -71,15 +71,6 @@ class Page(ABC):
             r=int((parse_qs(self.request.url.query).get("r") or ["0"])[0]) + 1,
         )
 
-    @staticmethod
-    def to_url(path: Path | str) -> str:
-        # use .absolute() or first \ gets mangled on windows sometimes somehow
-        return "/" + str(Path(path).absolute().as_posix())
-
-    @staticmethod
-    def to_anchor(path: Path) -> str:
-        return path.stem.replace(" ", "-")
-
 
 @dataclass(slots=True)
 class Browse(Page):
@@ -141,7 +132,7 @@ async def jobs(request: Request) -> Response:
 @app.get("/thumbnail/{path:path}")
 async def thumbnail(path: Path | str, recurse: int = 2) -> Response:
     if is_web_image(path):
-        return RedirectResponse(Page.to_url(path), status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(MPath(path).url, status.HTTP_303_SEE_OTHER)
 
     path = await MPath(path).extracted
 

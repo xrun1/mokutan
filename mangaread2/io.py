@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any, Self
 from uuid import uuid4
 from zipfile import ZipFile
 
+from fastapi.datastructures import URL
 import fugashi
 import httpx
 import unidic
@@ -141,6 +142,15 @@ class MPath(Path):
             path = path[0] + ":" + path[1:]
 
         return type(self)(path) if Path(path).exists() else self
+
+    @property
+    def url(self) -> URL:
+        # use .absolute() or first \ gets mangled on windows sometimes somehow
+        return URL("/" + str(self.absolute().as_posix()))
+
+    @property
+    def as_anchor(self) -> str:
+        return self.stem.replace(" ", "-")
 
     @property
     def images(self) -> list[Self]:

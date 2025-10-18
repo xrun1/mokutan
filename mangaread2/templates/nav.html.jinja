@@ -4,13 +4,13 @@
         {% if parent == path %}
             <a title="This PC" href="/">⭡</a>&#32;
         {% else %}
-            <a title=Parent href="{{to_url(parent)}}#{{to_anchor(path)}}">
+            <a title=Parent href="{{parent.url}}#{{path.as_anchor}}">
                 ⭡
             </a>&#32;
         {% endif %}
 
         {% if path.previous_chapter(sort) %}
-            <a title=Previous href="{{to_url(path.previous_chapter(sort))}}">
+            <a title=Previous href="{{path.previous_chapter(sort).url}}">
                 ⭠
             </a>&#32;
         {% endif %}
@@ -18,7 +18,7 @@
         {{path.name or path}}&#32;
 
         {% if path.next_chapter(sort) %}
-            <a title=Next href="{{to_url(path.next_chapter(sort))}}">⭢</a>
+            <a title=Next href="{{path.next_chapter(sort).url}}">⭢</a>
         {% endif %}
     </h2>
 
@@ -49,7 +49,7 @@
 
     <details open>
         <summary>OCR</summary>
-        <form action="/ocr/start{{to_url(path)}}">
+        <form action="/ocr/start{{path.url}}">
             <span {{"" if path.ocr_can_begin else "disabled"}}>
                 <input type=hidden name=sort value="{{sort}}">
                 <input type=hidden name=referer value="{{request.url}}">
@@ -79,7 +79,7 @@
                 <span class=progress>⏸ {{path.ocr_progress_text}}</span>&emsp;
             {% endif %}
 
-            <a href="/jobs#{{to_anchor(path)}}">Queue</a>
+            <a href="/jobs#{{path.as_anchor}}">Queue</a>
         </form>
     </details>
     <br>
