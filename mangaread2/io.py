@@ -144,11 +144,6 @@ class MPath(Path):
         return type(self)(path) if Path(path).exists() else self
 
     @property
-    def url(self) -> URL:
-        # use .absolute() or first \ gets mangled on windows sometimes somehow
-        return URL("/" + str(self.absolute().as_posix()))
-
-    @property
     def as_anchor(self) -> str:
         return self.stem.replace(" ", "-")
 
@@ -279,6 +274,11 @@ class MPath(Path):
     def ocr_done(self) -> bool:
         done, total = self.ocr_progress
         return done >= total
+
+    def url(self, **params: Any) -> URL:
+        # use .absolute() or first \ gets mangled on windows sometimes somehow
+        base = "/" + str(self.absolute().as_posix())
+        return URL(base).include_query_params(**params)
 
     def previous_chapter(self, sort: str = "") -> Self | None:
         chapters, own_idx = self._sibling_chapters(sort)

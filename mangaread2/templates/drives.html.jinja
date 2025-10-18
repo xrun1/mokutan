@@ -12,7 +12,7 @@
 <body>
     <div id=non-images>
         {% for path in drives %}
-            <a href="{{path.url}}">
+            <a href="{{path.url()}}">
                 <h4>{{path}}</h4>
                 <div class="no-thumb drive">🖴</div>
             </a>

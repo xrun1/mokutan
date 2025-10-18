@@ -132,7 +132,7 @@ async def jobs(request: Request) -> Response:
 @app.get("/thumbnail/{path:path}")
 async def thumbnail(path: Path | str, recurse: int = 2) -> Response:
     if is_web_image(path):
-        return RedirectResponse(MPath(path).url, status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(MPath(path).url(), status.HTTP_303_SEE_OTHER)
 
     path = await MPath(path).extracted
 

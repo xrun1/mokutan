@@ -15,7 +15,7 @@
 
     <div id=non-images>
         {% for path in path.non_images(sort) %}
-            <a id={{path.as_anchor}} href="{{path.url}}">
+            <a id={{path.as_anchor}} href="{{path.url()}}">
                 <h4>{{path.name}}</h4>
 
                 {% set progress = path.ocr_progress %}
@@ -45,7 +45,7 @@ Anki decrease: {{dif[4]|int}} ({{(dif[4] / (dif[1] + dif[4]) * 100) | int}}%)
 
                 <img
                     alt="{{'🗀' if path.is_dir() else '🗎'}}"
-                    src="/thumbnail{{path.url}}"
+                    src="/thumbnail{{path.url()}}"
                     loading=lazy
                 >
             </a>
@@ -65,7 +65,7 @@ Anki decrease: {{dif[4]|int}} ({{(dif[4] / (dif[1] + dif[4]) * 100) | int}}%)
         </h4>
 
         <div class=page>
-            <img id="{{img.as_anchor}}" src="{{img.url}}" loading=lazy>
+            <img id="{{img.as_anchor}}" src="{{img.url()}}" loading=lazy>
 
             {% for box in path.ocr_boxes(img) %}
                 <p style="
