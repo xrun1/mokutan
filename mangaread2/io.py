@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any, Self
 from uuid import uuid4
 from zipfile import ZipFile
 
+from annotated_types import SupportsLt
 import fugashi
 import httpx
 import unidic
@@ -367,13 +368,16 @@ class MPath(Path):
 
     @classmethod
     def _sort(cls, sort: str, p: Iterable[Self]) -> list[Self]:
+        def ns(key: Callable[[Self], SupportsLt]) -> list[Self]:
+            return natsorted(p, key=lambda e: (key(e), e.name))
+
         if sort == "m":
-            return sorted(p, key=lambda e: e.stat().st_mtime)
+            return ns(lambda e: e.stat().st_mtime)
         if sort == "d":
-            return sorted(p, key=lambda e: (e.difficulty or (0, math.inf))[1])
+            return ns(lambda e: (e.difficulty or (0, math.inf))[1])
         if sort == "p":
-            return sorted(p, key=lambda e: len(e.images))
-        return natsorted(p, key=lambda e: e.name)
+            return ns(lambda e: len(e.images))
+        return ns(lambda _: -1)
 
     def _sibling_chapters(self, sort: str = "") -> tuple[list[Self], int]:
         if self.unextracted.parent is self:  # drive root
