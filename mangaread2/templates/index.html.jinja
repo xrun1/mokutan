@@ -27,21 +27,25 @@
                 {% set icon = "🗏 " %}
                 {% if path.ocr_running %} {% set icon = "⏵ " %} {% endif %}
                 {% if path.ocr_paused %} {% set icon = "⏸ " %} {% endif %}
-                <span title="{{prog_txt}} OCR'ed">{{icon}}{{prog_shown}}</span>
+                <span class=folder-status>
+                    <span title="{{prog_txt}} pages OCR'ed">
+                        {{icon}}{{prog_shown}}
+                    </span>
 
-                {% set dif = path.difficulty %}
-                {% if dif %}
-                    <span title="
+                    {% set dif = path.difficulty %}
+                    {% if dif %}
+                        <span title="
 Average words per page: {{dif[5]|round(1)}}
 Unique words: {{dif[0]}}
 Learned in Anki: {{dif[2]}} ({{(dif[2] / dif[0] * 100) | int}}%)
 Mature: {{dif[3]}} ({{(dif[3] / dif[2] * 100) | int}}%)
 Raw difficulty: {{(dif[1] + dif[4])|int}}
 Anki decrease: {{dif[4]|int}} ({{(dif[4] / (dif[1] + dif[4]) * 100) | int}}%)
-                    ">
-                        🗲&hairsp;{{dif[1]|int}}
-                    </span>
-                {% endif %}
+                        ">
+                            🗲&hairsp;{{dif[1]|int}}
+                        </span>
+                    {% endif %}
+                </span>
 
                 <img
                     alt="{{'🗀' if path.is_dir() else '🗎'}}"

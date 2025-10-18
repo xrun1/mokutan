@@ -109,16 +109,20 @@ h4 a {
         display: inline;
     }
 
-    > span[title$="OCR'ed"], > span[title^="Average difficulty"] {
+    .folder-status {
         white-space: nowrap;
-    }
 
-    > span[title$="OCR'ed"][title^="0/"] {
-        color: var(--text);
-    }
+        & span {
+            white-space: nowrap;
+        }
 
-    > span[title$="OCR'ed"][title^="0/0"] {
-        display: none;
+        & span[title$="OCR'ed"][title^="0/"] {
+            color: var(--text);
+        }
+
+        & span[title$="OCR'ed"][title^="0/0"] {
+            display: none;
+        }
     }
 
     > img {
