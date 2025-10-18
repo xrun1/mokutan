@@ -9,51 +9,49 @@
             </a>&#32;
         {% endif %}
 
-        {% if path.previous_chapter %}
-            <a title=Previous href="{{to_url(path.previous_chapter)}}">
+        {% if path.previous_chapter(sort) %}
+            <a title=Previous href="{{to_url(path.previous_chapter(sort))}}">
                 ⭠
             </a>&#32;
         {% endif %}
 
         {{path.name or path}}&#32;
 
-        {% if path.next_chapter %}
-            <a title=Next href="{{to_url(path.next_chapter)}}">⭢</a>
+        {% if path.next_chapter(sort) %}
+            <a title=Next href="{{to_url(path.next_chapter(sort))}}">⭢</a>
         {% endif %}
     </h2>
 
-    {% if (path.non_images() | length) > 1 %}
-        {% macro check(v) -%}{{"checked" if sort == v else ""}}{%- endmacro %}
-
-        <details open>
-            <summary>Sort by</summary>
-            <form action="">
-                <label>
-                    <input type=radio name=sort value="" {{check("")}}>
-                    Name
-                </label>
-                <label>
-                    <input type=radio name=sort value=m {{check("m")}}>
-                    Date modified
-                </label>
-                <label>
-                    <input type=radio name=sort value=p {{check("p")}}>
-                    Page count
-                </label>
-                <label>
-                    <input type=radio name=sort value=d {{check("d")}}>
-                    Difficulty
-                </label>
-                <button type=submit>Set</button>
-            </form>
-        </details>
-        <br>
-    {% endif %}
+    {% macro check(v) -%}{{"checked" if sort == v else ""}}{%- endmacro %}
+    <details open>
+        <summary>Sort folders by</summary>
+        <form action="">
+            <label>
+                <input type=radio name=sort value="" {{check("")}}>
+                Name
+            </label>
+            <label>
+                <input type=radio name=sort value=m {{check("m")}}>
+                Date modified
+            </label>
+            <label>
+                <input type=radio name=sort value=p {{check("p")}}>
+                Page count
+            </label>
+            <label>
+                <input type=radio name=sort value=d {{check("d")}}>
+                Difficulty
+            </label>
+            <button type=submit>Set</button>
+        </form>
+    </details>
+    <br>
 
     <details open>
         <summary>OCR</summary>
         <form action="/ocr/start{{to_url(path)}}">
             <span {{"" if path.ocr_can_begin else "disabled"}}>
+                <input type=hidden name=sort value="{{sort}}">
                 <input type=hidden name=referer value="{{request.url}}">
                 <label>
                     <input

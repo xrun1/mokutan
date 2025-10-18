@@ -9,7 +9,6 @@ import os
 import shutil
 import time
 from collections import Counter, defaultdict, deque
-from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -38,7 +37,7 @@ from .utils import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable
     from threading import Event
 
 from fastapi import APIRouter, Response, status
@@ -144,38 +143,16 @@ class MPath(Path):
         return type(self)(path) if Path(path).exists() else self
 
     @property
-    def previous_chapter(self) -> Self | None:
-        chapters, own_idx = self._sibling_chapters()
-        return chapters[own_idx - 1] if own_idx > 0 else None
-
-    @property
-    def next_chapters(self) -> list[Self]:
-        chapters, own_idx = self._sibling_chapters()
-        return chapters[own_idx + 1:]
-
-    @property
-    def next_chapter(self) -> Self | None:
-        return next(iter(self.next_chapters), None)
-
-    @property
     def images(self) -> list[Self]:
         if not self.is_dir():
             return []
         return [p for p in get_sorted_dir(self) if is_web_image(p)]
 
     def non_images(self, sort: str = "") -> list[Self]:
-        entries = [
-            p for p in get_sorted_dir(self) if not (
-                is_web_image(p) or p.suffix == ".mokuro" or p.name == "_ocr"
-            )
-        ]
-        if sort == "m":
-            entries.sort(key=lambda e: e.stat().st_mtime)
-        elif sort == "d":
-            entries.sort(key=lambda e: (e.difficulty or (0, math.inf))[1])
-        elif sort == "p":
-            entries.sort(key=lambda e: len(e.images))
-        return entries
+        return self._sort(sort, (
+            p for p in self.iterdir() if not
+            (is_web_image(p) or p.suffix == ".mokuro" or p.name == "_ocr")
+        ))
 
     @property
     def difficulty(self) -> tuple[int, float, int, int, float, float] | None:
@@ -293,6 +270,17 @@ class MPath(Path):
         done, total = self.ocr_progress
         return done >= total
 
+    def previous_chapter(self, sort: str = "") -> Self | None:
+        chapters, own_idx = self._sibling_chapters(sort)
+        return chapters[own_idx - 1] if own_idx > 0 else None
+
+    def next_chapters(self, sort: str = "") -> list[Self]:
+        chapters, own_idx = self._sibling_chapters(sort)
+        return chapters[own_idx + 1:]
+
+    def next_chapter(self, sort: str = "") -> Self | None:
+        return next(iter(self.next_chapters(sort)), None)
+
     def ocr_boxes(self, image: Path) -> Iterable[OCRBox]:
         if self.ocr_json_file.exists():
             data = json.load(self.ocr_json_file.open(encoding="utf-8"))
@@ -367,13 +355,23 @@ class MPath(Path):
                     box.lines.reverse()
                 yield box
 
-    def _sibling_chapters(self) -> tuple[list[Self], int]:
+    @classmethod
+    def _sort(cls, sort: str, p: Iterable[Self]) -> list[Self]:
+        if sort == "m":
+            return sorted(p, key=lambda e: e.stat().st_mtime)
+        if sort == "d":
+            return sorted(p, key=lambda e: (e.difficulty or (0, math.inf))[1])
+        if sort == "p":
+            return sorted(p, key=lambda e: len(e.images))
+        return natsorted(p, key=lambda e: e.name)
+
+    def _sibling_chapters(self, sort: str = "") -> tuple[list[Self], int]:
         if self.unextracted.parent is self:  # drive root
             return ([], -1)
-        chapters = [
-            p for p in get_sorted_dir(self.unextracted.parent)
+        chapters = self._sort(sort, (
+            p for p in self.unextracted.parent.iterdir()
             if p.is_dir() or is_supported_archive(p)
-        ]
+        ))
         return (chapters, chapters.index(self.unextracted.parent / self.name))
 
 
@@ -520,10 +518,11 @@ async def start_ocr(
     keep_going: bool = False,
     recursive: bool = False,
     prioritize: bool = False,
+    sort: str = "",
     referer: str = "/",
 ) -> Response:
     job = MPath(chapter).unextracted
-    jobs = [job, *job.next_chapters] if keep_going else [job]
+    jobs = [job, *job.next_chapters(sort)] if keep_going else [job]
     jobs = flatten(f.glob("**/") if recursive else [f] for f in jobs)
     (OCR_QUEUE.extendleft if prioritize else OCR_QUEUE.extend)(jobs)
     return RedirectResponse(url=referer, status_code=status.HTTP_303_SEE_OTHER)
