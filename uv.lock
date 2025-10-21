@@ -223,6 +223,26 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/84/a9/72a7c8261ddceb0fbaee8fe075d4acd9023504c8fa8cbea2cf6140892040/fugashi-1.5.1-cp313-cp313-win_amd64.whl", hash = "sha256:adf1646103151af5c0b78f11fd01e145c506774609243935c0978606e4a96ad3", size = 513083 },
 ]
 
+[[package]]
+name = "fugashi-plus"
+version = "1.5.1.post1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/fa/05/5931c0a2defcac8c650644ebe1e35b7030a825e6f7db3a892b1599681b85/fugashi_plus-1.5.1.post1.tar.gz", hash = "sha256:55f98cf4cdeb9d23207e372f0d8f2291339312a97f04b7509172a3390dad2a98", size = 346386 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9d/76/1c70e2650e196e185537d3638166544216cbf931ff8eef4425961416db25/fugashi_plus-1.5.1.post1-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:9b00825e6a302cf9f7a104083a84c2f0e2c6aad51f94abe727fdced0a4228819", size = 559611 },
+    { url = "https://files.pythonhosted.org/packages/da/72/5969ed5045f8e503f2bf5533ededdbae2ea8ccff15ecee2b9f4f24453b68/fugashi_plus-1.5.1.post1-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:b848500abe221a8e7173e4bb1737459c8278c8a66cc46a85ff774f570fbc6158", size = 492010 },
+    { url = "https://files.pythonhosted.org/packages/9c/05/cf1cdbb7591a6bdc56987aca478ab959b7f1600db920f3043e6adcb1e154/fugashi_plus-1.5.1.post1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:d86a45abf847459d685dea11547ce60a34ec786f0b495e7181e18176e31077c7", size = 488975 },
+    { url = "https://files.pythonhosted.org/packages/16/f9/23cef7558bea004fb38f8502ade65ca55758042ae36015b691be4e83182b/fugashi_plus-1.5.1.post1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:398f7c7f69adc6f5cc72be88378dfba9bb69787ff64fd25e9b392c008709be71", size = 724898 },
+    { url = "https://files.pythonhosted.org/packages/a1/e1/aaeaae7319042092fa23f8be9cc61be018f5748191cbc67d8c2649a7437f/fugashi_plus-1.5.1.post1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:93fee638ffff30ef3b99e0a75056b5de873dde97b434eb53d417dd69709fd104", size = 748260 },
+    { url = "https://files.pythonhosted.org/packages/aa/c6/4798c71b034f31959e57875b2593834f807306161df86a74df2f6e48c824/fugashi_plus-1.5.1.post1-cp312-cp312-win_amd64.whl", hash = "sha256:b090683ae5da9970d6f40af7a501e24f2e435f3e519664fbdbbf345a6f84c5cc", size = 550487 },
+    { url = "https://files.pythonhosted.org/packages/3c/15/b108d467d81faee8c3e87798dae3ea3f577fbef20515213537dead3403b2/fugashi_plus-1.5.1.post1-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:e5ea7082bbfa65d3f755f2641cb8891d14fa73799ae8c341fe95f82b89c86633", size = 557196 },
+    { url = "https://files.pythonhosted.org/packages/30/13/70081645099d521172460c6b84e72e536ce46780d676c172ac5f36be5078/fugashi_plus-1.5.1.post1-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:44d77b44b5b94e2a3b64c1f1ec82308ce8644d4a1a6fb48ed1b34434411f6b0d", size = 490494 },
+    { url = "https://files.pythonhosted.org/packages/d8/3a/228f2d9dce7e76613a2c0874f1dd2487c6a3bdbf10fc2b143197f6d809e1/fugashi_plus-1.5.1.post1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:da30127eacde14f210203f31d42634eac86106ae6a4d75982b65cba7df8c17de", size = 488015 },
+    { url = "https://files.pythonhosted.org/packages/58/90/96808b32a0fb8265928c97ed788a4eb522d486922841b67bba8877a1d2b8/fugashi_plus-1.5.1.post1-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:6f006f159e63325cfbcd2797fae6f8cf844a57b8ca7022bd39b43ab81b0df039", size = 722427 },
+    { url = "https://files.pythonhosted.org/packages/d4/bb/3a85ba518fea685ed9b865d8a880e92eac63f3c233d76fe8fd00a206c1e8/fugashi_plus-1.5.1.post1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:88312c40000beb73988154f3d826a1926da2cc7dd41f1e9c6b1e4e7c94b9b915", size = 747037 },
+    { url = "https://files.pythonhosted.org/packages/b1/00/f617f5f617c29bef53e3f11b061adc6c057bfc6efaeb68212de112a92ef3/fugashi_plus-1.5.1.post1-cp313-cp313-win_amd64.whl", hash = "sha256:8989a1b906e7284ecfbf14100aec7d56e548125e2b33724e235f7ca04818d6d4", size = 550097 },
+]
+
 [package.optional-dependencies]
 unidic = [
     { name = "unidic" },
@@ -446,7 +466,7 @@ source = { editable = "." }
 dependencies = [
     { name = "docopt-ng" },
     { name = "fastapi" },
-    { name = "fugashi", extra = ["unidic"] },
+    { name = "fugashi-plus", extra = ["unidic"] },
     { name = "httpx" },
     { name = "jinja2" },
     { name = "mokuro" },
@@ -471,7 +491,7 @@ dev = [
 requires-dist = [
     { name = "docopt-ng", specifier = ">=0.9.0" },
     { name = "fastapi", specifier = ">=0.115.12" },
-    { name = "fugashi", extras = ["unidic"], specifier = ">=1.5.1" },
+    { name = "fugashi-plus", extras = ["unidic"], specifier = ">=1.5.1.post1" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "mokuro", specifier = ">=0.2.2" },

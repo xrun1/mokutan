@@ -10,7 +10,7 @@ dependencies = [
     "natsort>=8.4.0",
     "mokuro>=0.2.2",
     "wakepy>=0.10.2.post1",
-    "fugashi[unidic]>=1.5.1",
+    "fugashi-plus[unidic]>=1.5.1.post1",
     "httpx>=0.28.1",
 ]
 
