@@ -45,14 +45,19 @@
             </label>
             <label>
                 <input type=radio name=sort value=d {{check("d")}}>
-                Difficulty<sup> OCR</sup>
+                Difficulty
             </label>
             <label>
                 <input type=radio name=sort value=a {{check("a")}}>
-                Anki knowledge<sup> OCR</sup>
+                Anki knowledge
             </label>
             <button type=submit>Set</button>
         </form>
+
+        <p class=sort-ocr-warning>
+            Difficulty and Anki stats are calculated for folders in which all
+            images are OCRed.
+        </p>
     </details>
     <br>
 
