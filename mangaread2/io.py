@@ -105,15 +105,15 @@ class Difficulty:
 
     @property
     def anki_learned_percent(self) -> float:
-        return self.anki_learned / self.unique_terms * 100
+        return self.anki_learned / (self.unique_terms or 1) * 100
 
     @property
     def anki_mature_percent(self) -> float:
-        return self.anki_mature / self.unique_terms * 100
+        return self.anki_mature / (self.unique_terms or 1) * 100
 
     @property
     def anki_score_decrease_percent(self) -> float:
-        return self.anki_score_decrease / self.raw_score * 100
+        return self.anki_score_decrease / (self.raw_score or 1) * 100
 
 
 class MPath(Path):
