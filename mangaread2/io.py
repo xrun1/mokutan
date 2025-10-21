@@ -87,6 +87,35 @@ class OCRBox:
     lines: list[str] = field(default_factory=list)
 
 
+@dataclass(slots=True)
+class Difficulty:
+    score: float = 0
+    unique_terms: int = 0
+    terms_per_page: float = 0
+    anki_learned: int = 0
+    anki_mature: int = 0
+    anki_score_decrease: float = 0
+
+    def __bool__(self) -> bool:
+        return bool(self.score)
+
+    @property
+    def raw_score(self) -> float:
+        return self.score + self.anki_score_decrease
+
+    @property
+    def anki_learned_percent(self) -> float:
+        return self.anki_learned / self.unique_terms * 100
+
+    @property
+    def anki_mature_percent(self) -> float:
+        return self.anki_mature / self.unique_terms * 100
+
+    @property
+    def anki_score_decrease_percent(self) -> float:
+        return self.anki_score_decrease / self.raw_score * 100
+
+
 class MPath(Path):
     @property
     async def extracted(self) -> Self:
@@ -160,9 +189,9 @@ class MPath(Path):
         ))
 
     @property
-    def difficulty(self) -> tuple[int, float, int, int, float, float] | None:
+    def difficulty(self) -> Difficulty:
         if not (jp_parser and jp_freqs and self.ocr_json_file.exists()):
-            return None
+            return Difficulty()
 
         ocr_data = json.load(self.ocr_json_file.open(encoding="utf-8"))
         text = "\n\n".join(
@@ -171,7 +200,7 @@ class MPath(Path):
             for box in page["blocks"]
         )
         if not text.strip():
-            return None
+            return Difficulty()
         terms = jp_parser(text)
         unique_vocab = {t.feature.orthBase: t for t in terms}
         counts = Counter(t.feature.orthBase for t in terms)
@@ -202,19 +231,20 @@ class MPath(Path):
                 / max(1, counts[t.feature.orthBase])
             )
 
-        score = sum(get_score(t) for t in unique_vocab.values())
         avg_terms_per_page = len(terms) / len(ocr_data["pages"])
 
-        def adjust(score: float) -> float:
-            return score / len(unique_vocab) * avg_terms_per_page / 20_000
+        def adjust(score_like: float) -> float:
+            return score_like / len(unique_vocab) * avg_terms_per_page / 20_000
 
-        return (
-            len(unique_vocab),
-            adjust(score),
-            len(intervals),
-            len([iv for iv in intervals if iv >= ANKI_MATURE_THRESHOLD]),
-            adjust(anki_bonus),
-            avg_terms_per_page,
+        return Difficulty(
+            score=adjust(sum(get_score(t) for t in unique_vocab.values())),
+            unique_terms=len(unique_vocab),
+            terms_per_page=avg_terms_per_page,
+            anki_learned=len(intervals),
+            anki_mature=len([
+                iv for iv in intervals if iv >= ANKI_MATURE_THRESHOLD
+            ]),
+            anki_score_decrease=adjust(anki_bonus),
         )
 
     @property
@@ -373,7 +403,7 @@ class MPath(Path):
         if sort == "m":
             return ns(lambda e: e.stat().st_mtime)
         if sort == "d":
-            return ns(lambda e: (e.difficulty or (0, math.inf))[1])
+            return ns(lambda e: e.difficulty.score or math.inf)
         if sort == "p":
             return ns(lambda e: len(e.images))
         return ns(lambda _: -1)

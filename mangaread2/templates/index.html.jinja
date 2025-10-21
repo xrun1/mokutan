@@ -35,14 +35,14 @@
                     {% set dif = path.difficulty %}
                     {% if dif %}
                         <span title="
-Average words per page: {{dif[5]|round(1)}}
-Unique words: {{dif[0]}}
-Learned in Anki: {{dif[2]}} ({{(dif[2] / dif[0] * 100) | int}}%)
-Mature: {{dif[3]}} ({{(dif[3] / dif[2] * 100) | int}}%)
-Raw difficulty: {{(dif[1] + dif[4])|int}}
-Anki decrease: {{dif[4]|int}} ({{(dif[4] / (dif[1] + dif[4]) * 100) | int}}%)
+Average words per page: {{dif.terms_per_page | round(1)}}
+Unique words: {{dif.unique_terms}}
+Learned in Anki: {{dif.anki_learned}} ({{dif.anki_learned_percent | int}}%)
+Mature: {{dif.anki_mature}} ({{dif.anki_mature_percent | int}}%)
+Raw difficulty: {{dif.raw_score | int}}
+Anki decrease: {{dif.anki_score_decrease | int}} ({{dif.anki_score_decrease_percent | int}}%)
                         ">
-                            🗲&hairsp;{{dif[1]|int}}
+                            🗲&hairsp;{{dif.score | int}}
                         </span>
                     {% endif %}
                 </span>
