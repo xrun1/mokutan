@@ -20,7 +20,6 @@ from typing import TYPE_CHECKING, Any, Self
 from uuid import uuid4
 from zipfile import ZipFile
 
-from annotated_types import SupportsLt
 import fugashi
 import httpx
 import unidic
@@ -368,7 +367,7 @@ class MPath(Path):
 
     @classmethod
     def _sort(cls, sort: str, p: Iterable[Self]) -> list[Self]:
-        def ns(key: Callable[[Self], SupportsLt]) -> list[Self]:
+        def ns(key: Callable[[Self], Any]) -> list[Self]:
             return natsorted(p, key=lambda e: (key(e), e.name))
 
         if sort == "m":
