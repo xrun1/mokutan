@@ -397,15 +397,17 @@ class MPath(Path):
 
     @classmethod
     def _sort(cls, sort: str, p: Iterable[Self]) -> list[Self]:
-        def ns(key: Callable[[Self], Any]) -> list[Self]:
-            return natsorted(p, key=lambda e: (key(e), e.name))
+        def ns(key: Callable[[Self], Any], invert: bool = False) -> list[Self]:
+            return natsorted(p, key=lambda e: (key(e), e.name), reverse=invert)
 
         if sort == "m":
             return ns(lambda e: e.stat().st_mtime)
-        if sort == "d":
-            return ns(lambda e: e.difficulty.score or math.inf)
         if sort == "p":
             return ns(lambda e: len(e.images))
+        if sort == "d":
+            return ns(lambda e: e.difficulty.score or math.inf)
+        if sort == "a":
+            return ns(lambda e: e.difficulty.anki_learned_percent, invert=True)
         return ns(lambda _: -1)
 
     def _sibling_chapters(self, sort: str = "") -> tuple[list[Self], int]:
