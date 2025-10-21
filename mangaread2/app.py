@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Event
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, ClassVar
 from urllib.parse import parse_qs
 
 import jinja2
@@ -22,7 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from natsort import natsorted
 
-from mangaread2 import io
+from mangaread2 import difficulty, io
 
 from . import DISPLAY_NAME, NAME
 from .io import MPath
@@ -103,8 +103,8 @@ class Jobs(Page):
 
 @asynccontextmanager
 async def life(_app: FastAPI):
-    io.load_dict_data()
-    await io.load_anki_data()
+    difficulty.load_dict_data()
+    await difficulty.load_anki_data()
     tasks = [
         asyncio.create_task(asyncio.to_thread(catch_log_exceptions(f), EXIT))
         for f in (io.queue_loop, io.trim_archive_cache)
