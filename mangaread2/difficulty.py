@@ -9,7 +9,7 @@ from datetime import timedelta
 from importlib import resources
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 from zipfile import ZipFile
 
 import fugashi
@@ -48,6 +48,8 @@ ANKI_MATURE_THRESHOLD = timedelta(days=21)
 
 @dataclass(slots=True)
 class Difficulty:
+    cache: ClassVar[dict[Path, tuple[float, int, Self]]] = {}
+
     score: float = 0
     unique_terms: int = 0
     terms_per_page: float = 0
@@ -75,18 +77,27 @@ class Difficulty:
         return self.anki_score_decrease / (self.raw_score or 1) * 100
 
     @classmethod
-    def calculate(cls, ocr_json_file: Path) -> Self:
-        if not (jp_parser and jp_freqs and ocr_json_file.exists()):
+    def calculate(cls, ocr_json: Path) -> Self:
+        if not (jp_parser and jp_freqs and ocr_json.exists()):
             return cls()
 
-        ocr_data = json.load(ocr_json_file.open(encoding="utf-8"))
+        fs_stats = ocr_json.stat()
+
+        if ocr_json in cls.cache:
+            mtime, size, diff = cls.cache[ocr_json]
+            if mtime == fs_stats.st_mtime and size == fs_stats.st_size:
+                return diff
+
+        ocr_data = json.load(ocr_json.open(encoding="utf-8"))
         text = "\n\n".join(
             "\n".join(box["lines"])
             for page in ocr_data["pages"]
             for box in page["blocks"]
         )
         if not text.strip():
-            return cls()
+            cls.cache[ocr_json] = (fs_stats.st_mtime, fs_stats.st_size, cls())
+            return cls.cache[ocr_json][2]
+
         terms = jp_parser(text)
         unique_vocab = {t.feature.orthBase: t for t in terms}
         counts = Counter(t.feature.orthBase for t in terms)
@@ -122,7 +133,7 @@ class Difficulty:
         def adjust(score_like: float) -> float:
             return score_like / len(unique_vocab) * avg_terms_per_page / 20_000
 
-        return cls(
+        diff = cls(
             score=adjust(sum(get_score(t) for t in unique_vocab.values())),
             unique_terms=len(unique_vocab),
             terms_per_page=avg_terms_per_page,
@@ -132,6 +143,8 @@ class Difficulty:
             ]),
             anki_score_decrease=adjust(anki_bonus),
         )
+        cls.cache[ocr_json] = (fs_stats.st_mtime, fs_stats.st_size, diff)
+        return diff
 
 
 def load_dict_data() -> None:
@@ -176,6 +189,7 @@ async def load_anki_data() -> None:
 
     assert jp_parser
     anki_intervals.clear()
+    Difficulty.cache.clear()
 
     for deck, note_type, card_field in anki_filters:
         query = f"deck:{json.dumps(deck)} note:{json.dumps(note_type)}"
