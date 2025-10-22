@@ -45,6 +45,13 @@ Anki decrease: {{dif.anki_score_decrease | int}} ({{dif.anki_score_decrease_perc
                             🗲&hairsp;{{dif.score | int}}
                         </span>
                     {% endif %}
+
+                    {% set rd = path.read_date %}
+                    {% if rd %}
+                        <span title="{{rd[0].strftime('Read the %F at %T')}}">
+                            ✔{{rd[2]}}
+                        </span>
+                    {% endif %}
                 </span>
 
                 <img

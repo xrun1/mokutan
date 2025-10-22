@@ -10,7 +10,7 @@ import time
 from collections import defaultdict, deque
 from contextlib import suppress
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from itertools import starmap
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
@@ -25,6 +25,7 @@ from natsort import natsorted
 from mangaread2.difficulty import Difficulty, mark_anki_known_terms
 
 from .utils import (
+    DATA_DIR,
     TEMP,
     is_supported_archive,
     is_web_image,
@@ -195,6 +196,26 @@ class MPath(Path):
         done, total = self.ocr_progress
         return done >= total
 
+    @property
+    def read_date(self) -> tuple[datetime, timedelta, str] | None:
+        if (data := self.get_mark("read")):
+            date = datetime.fromisoformat(data).astimezone()
+            delta = datetime.now(UTC) - date.astimezone(UTC)
+            sec = delta.total_seconds()
+
+            if sec < 60:
+                return (date, delta, f"{int(max(1, sec))}s")
+            if sec < 60 * 60:
+                return (date, delta, f"{int(sec / 60)}m")
+            if sec < 60 * 60 * 24:
+                return (date, delta, f"{int(sec / 60 / 60)}h")
+            if sec < 60 * 60 * 24 * 31:
+                return (date, delta, f"{int(sec / 60 / 60 / 24)}d")
+            if sec < 60 * 60 * 24 * 31 * 365:
+                return (date, delta, f"{int(sec / 60 / 60 / 24 / 31)}mo")
+            return (date, delta, f"{int(sec / 60 / 60 / 24 / 31 / 365)}y")
+        return None
+
     def url(self, **params: Any) -> URL:
         # use .absolute() or first \ gets mangled on windows sometimes somehow
         base = "/" + str(self.absolute().as_posix())
@@ -210,6 +231,30 @@ class MPath(Path):
 
     def next_chapter(self, sort: str = "") -> Self | None:
         return next(iter(self.next_chapters(sort)), None)
+
+    def has_mark(self, name: str) -> bool:
+        return self._mark(name).exists()
+
+    def get_mark(self, name: str) -> str | None:
+        try:
+            return self._mark(name).read_text(encoding="utf-8")
+        except FileNotFoundError:
+            return None
+
+    def set_mark(self, name: str, data: str | None) -> None:
+        if data is None:
+            self._mark(name).unlink(missing_ok=True)
+            with suppress(OSError):
+                self._mark(name).parent.rmdir()
+        else:
+            self._mark(name).parent.mkdir(parents=True, exist_ok=True)
+            self._mark(name).write_text(data, encoding="utf-8")
+
+    def mark_read(self) -> None:
+        self.set_mark("read", datetime.now(UTC).astimezone().isoformat())
+
+    def mark_unread(self) -> None:
+        self.set_mark("read", None)
 
     def ocr_boxes(self, image: Path) -> Iterable[OCRBox]:
         if self.ocr_json_file.exists():
@@ -308,6 +353,11 @@ class MPath(Path):
             if p.is_dir() or is_supported_archive(p)
         ))
         return (chapters, chapters.index(self.unextracted.parent / self.name))
+
+    def _mark(self, name: str) -> Path:
+        if is_supported_archive(self):
+            return DATA_DIR / "marks" / self.stem / f"{name}.txt"
+        return DATA_DIR / "marks" / self.name / f"{name}.txt"
 
 
 def _run_mokuro(run: Callable[..., None], chapter: Path | str) -> None:

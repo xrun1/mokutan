@@ -7,6 +7,7 @@ from pathlib import Path
 from tempfile import gettempdir
 from typing import TYPE_CHECKING, NamedTuple
 
+import appdirs
 from natsort import natsorted
 
 from . import NAME
@@ -18,6 +19,7 @@ log = logging.getLogger(NAME)
 log.setLevel(logging.INFO)
 
 TEMP = Path(gettempdir()) / NAME
+DATA_DIR = Path(appdirs.user_data_dir(NAME, appauthor=False, roaming=True))
 
 
 class Point(NamedTuple):

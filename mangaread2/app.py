@@ -152,6 +152,18 @@ async def thumbnail(path: Path | str, recurse: int = 2) -> Response:
     return Response(status_code=404)
 
 
+@app.get("/mark/read/{path:path}")
+async def mark_read(path: Path, referer: str = "/") -> Response:
+    MPath(path).mark_read()
+    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
+
+
+@app.get("/mark/unread/{path:path}")
+async def mark_unread(path: Path, referer: str = "/") -> Response:
+    MPath(path).mark_unread()
+    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
+
+
 @app.get("/{path:path}")
 async def browse(
     request: Request, path: Path | str = "/", sort: str = "",

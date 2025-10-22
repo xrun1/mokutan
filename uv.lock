@@ -464,6 +464,7 @@ name = "mangaread2"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "appdirs" },
     { name = "docopt-ng" },
     { name = "fastapi" },
     { name = "fugashi-plus", extra = ["unidic"] },
@@ -489,6 +490,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "appdirs", specifier = ">=1.4.4" },
     { name = "docopt-ng", specifier = ">=0.9.0" },
     { name = "fastapi", specifier = ">=0.115.12" },
     { name = "fugashi-plus", extras = ["unidic"], specifier = ">=1.5.1.post1" },

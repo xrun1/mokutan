@@ -7,8 +7,9 @@
             <a
                 title=Parent
                 href="{{parent.url(sort=sort)}}#{{path.as_anchor}}"
-            >⭡</a>&#32;
+            >⭡</a>
         {% endif %}
+        &ensp;
 
         {% if path.previous_chapter(sort) %}
             <a
@@ -17,13 +18,25 @@
             >⭠</a>&#32;
         {% endif %}
 
-        {{path.name or path}}&#32;
+        {{path.name or path}}
 
         {% if path.next_chapter(sort) %}
-            <a
+            &#32;<a
                 title=Next
                 href="{{path.next_chapter(sort).url(sort=sort)}}"
             >⭢</a>
+        {% endif %}
+
+        &ensp;
+        {% set tail = path.url() ~ "?referer=" ~ request.url %}
+        {% if path.has_mark("read") %}
+            <a title="Mark as unread" href="/mark/unread{{tail}}">
+                📖{{no_emoji}}<sup>✖</sup>
+            </a>
+        {% else %}
+            <a title="Mark as read" href="/mark/read{{tail}}">
+                📖{{no_emoji}}<sup>✔</sup>
+            </a>
         {% endif %}
     </h2>
 

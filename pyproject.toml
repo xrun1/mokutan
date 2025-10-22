@@ -12,6 +12,7 @@ dependencies = [
     "wakepy>=0.10.2.post1",
     "fugashi-plus[unidic]>=1.5.1.post1",
     "httpx>=0.28.1",
+    "appdirs>=1.4.4",
 ]
 
 [dependency-groups]
