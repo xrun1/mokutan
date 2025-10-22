@@ -58,12 +58,14 @@ h4 a {
     overflow-x: auto;
 }
 
-.page p {
+.page pre {
+    font-family: var(--sans);
+    white-space-collapse: preserve-breaks;
+    text-wrap-mode: nowrap;
     transition: opacity 0.2s;
     opacity: 0;
     position: absolute;
     text-align: left;
-    white-space: nowrap;
     line-height: 1.1em;
     /* background: hsl(55 100% 95%); */
     background: white;
