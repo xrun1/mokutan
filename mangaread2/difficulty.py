@@ -18,10 +18,6 @@ import unidic
 
 from mangaread2 import misc
 
-from .utils import (
-    script_difficulty,
-)
-
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
@@ -222,3 +218,42 @@ def mark_anki_known_terms(text: str) -> Iterable[str]:
             yield f"<span class=anki-young>{clean}</span>"
         else:
             yield f"<span class=anki-mature>{clean}</span>"
+
+
+def is_hiragana(char: str) -> bool:
+    return 0x3040 <= ord(char) <= 0x309F
+
+
+def is_katakana(char: str) -> bool:
+    return 0x30A0 <= ord(char) <= 0x30FF
+
+
+def is_kanji(char: str) -> bool:
+    return (
+        (0x3400 <= (code := ord(char)) <= 0x4DBF) or
+        (0x4E00 <= code <= 0x9FFF) or
+        (0xF900 <= code <= 0xFAFF)
+    )
+
+
+def script_difficulty(word: str) -> float:
+    def score_char(char: str) -> float:
+        if is_hiragana(char):
+            return 0.3
+        if is_katakana(char):
+            return 0.4
+        if is_kanji(char):
+            return 1
+        return 0
+
+    scores = [score_char(char) for char in word]
+    factor = len(word) ** 1.2
+
+    if set(scores) == {1}:  # all kanji
+        factor *= 1.3
+    elif set(scores) == {0.3}:  # all hiragana
+        factor *= 0.5
+    elif set(scores) == {0.4}:  # all katakana, probably loanword or SFX
+        factor *= 0.1
+
+    return sum(scores) / len(word) * factor
