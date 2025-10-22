@@ -237,7 +237,7 @@ class MPath(Path):
 
     def get_mark(self, name: str) -> str | None:
         try:
-            return self._mark(name).read_text(encoding="utf-8")
+            return self._mark(name).read_text(encoding="utf-8").rstrip()
         except FileNotFoundError:
             return None
 
