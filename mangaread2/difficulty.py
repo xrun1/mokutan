@@ -175,7 +175,7 @@ def load_dict_data() -> None:
 
 
 async def load_anki_data() -> None:
-    async def do(action: str, **params: Any) -> Any:
+    async def anki(action: str, **params: Any) -> Any:
         api = "http://localhost:8765"
         body = {"action": action, "version": 6, "params": params}
         got = (await http.post(api, json=body)).json()
@@ -184,13 +184,13 @@ async def load_anki_data() -> None:
         return got["result"]
 
     assert jp_parser
+    learned_before = {term for term, iv in anki_intervals.items() if iv}
     anki_intervals.clear()
-    Difficulty.cache.clear()
 
     for deck, note_type, card_field in anki_filters:
         query = f"deck:{json.dumps(deck)} note:{json.dumps(note_type)}"
-        ids: list[int] = await do("findCards", query=query)
-        info: list[dict[str, Any]] = await do("cardsInfo", cards=ids)
+        ids: list[int] = await anki("findCards", query=query)
+        info: list[dict[str, Any]] = await anki("cardsInfo", cards=ids)
 
         for card in info:
             iv = card["interval"]
@@ -201,6 +201,9 @@ async def load_anki_data() -> None:
 
                 if k not in anki_intervals or anki_intervals[k] < v:
                     anki_intervals[k] = v
+
+    if learned_before != {term for term, iv in anki_intervals.items() if iv}:
+        Difficulty.cache.clear()
 
 
 def mark_anki_known_terms(text: str) -> Iterable[str]:
