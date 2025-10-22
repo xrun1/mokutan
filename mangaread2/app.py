@@ -9,6 +9,7 @@ from pathlib import Path
 from threading import Event
 from typing import TYPE_CHECKING, ClassVar
 from urllib.parse import parse_qs
+from zipfile import ZipFile
 
 import jinja2
 from fastapi import FastAPI, Request, status
@@ -25,9 +26,11 @@ from natsort import natsorted
 from mangaread2 import difficulty, io
 
 from . import DISPLAY_NAME, NAME
-from .io import MPath
+from .io import EXTRACT_DIR, MPath
 from .utils import (
+    CACHE_DIR,
     catch_log_exceptions,
+    is_supported_archive,
     is_web_image,
 )
 
@@ -40,6 +43,8 @@ LOADER = jinja2.PackageLoader(NAME, "templates")
 ENV = jinja2.Environment(loader=LOADER, autoescape=jinja2.select_autoescape())
 TEMPLATES = Jinja2Templates(env=ENV)
 EXIT = Event()
+
+NO_THUMB_ARCHIVES = set()
 
 if os.getenv("UVICORN_RELOAD"):
     # Fix browser reusing cached files at reload despite disk modifications
@@ -131,10 +136,10 @@ async def jobs(request: Request) -> Response:
 
 @app.get("/thumbnail/{path:path}")
 async def thumbnail(path: Path | str, recurse: int = 2) -> Response:
-    if is_web_image(path):
-        return RedirectResponse(MPath(path).url(), status.HTTP_303_SEE_OTHER)
+    path = MPath(path)
 
-    path = await MPath(path).extracted
+    if is_web_image(path):
+        return RedirectResponse(path.url(), status.HTTP_303_SEE_OTHER)
 
     if path.is_dir():
         items = path.iterdir() if recurse else path.glob("*/")
@@ -148,6 +153,22 @@ async def thumbnail(path: Path | str, recurse: int = 2) -> Response:
                 dirs_tried += 1
             if dirs_tried >= 3:
                 break
+    elif is_supported_archive(path) and path not in NO_THUMB_ARCHIVES:
+        if (base := EXTRACT_DIR / "Thumbnails" / path.name).exists():
+            return await thumbnail(base, 99)
+
+        with ZipFile(path) as arc:
+            images = natsorted((
+                f for f in arc.filelist
+                if not f.is_dir() and is_web_image(f.orig_filename)
+            ), key=lambda f: f.orig_filename)
+
+            if images:
+                base.mkdir(parents=True, exist_ok=True)
+                arc.extract(images[0], base)
+                return await thumbnail(base, 99)
+
+            NO_THUMB_ARCHIVES.add(path)
 
     return Response(status_code=404)
 
