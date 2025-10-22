@@ -343,6 +343,9 @@ class MPath(Path):
             return ns(lambda e: e.difficulty.score or math.inf)
         if sort == "a":
             return ns(lambda e: e.difficulty.anki_learned_percent, invert=True)
+        if sort == "r":
+            no_date = datetime.fromtimestamp(0, tz=UTC)
+            return ns(lambda e: (e.read_date or [no_date])[0], invert=True)
         return ns(lambda _: -1)
 
     def _sibling_chapters(self, sort: str = "") -> tuple[list[Self], int]:
