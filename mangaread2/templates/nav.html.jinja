@@ -114,4 +114,28 @@
         </form>
     </details>
     <br>
+
+    <details open>
+        <summary>Anki</summary>
+        <form class=anki action="/anki/load">
+            <label>Address:
+                <input type=url name=api
+                    value="{{anki_connected or ANKI_DEFAULT_API}}">
+            </label>
+            <label>API Key:
+                <input type=password name=key
+                    placeholder="Leave blank if not set up">
+            </label>
+
+            <input type=hidden name=referer value="{{request.url}}">
+
+            {% if anki_connected %}
+                <button class=connect type="submit">Reload</button>
+                <span class=anki-connected>✔ Connected</span>
+            {% else %}
+                <button class=connect type="submit">Connect</button>
+            {% endif %}
+        </form>
+    </details>
+    <br>
 </nav>

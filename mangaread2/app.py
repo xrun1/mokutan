@@ -69,6 +69,8 @@ class Page(ABC):
         } | {
             "DISPLAY_NAME": DISPLAY_NAME,
             "no_emoji": "&#xFE0E;",
+            "anki_connected": difficulty.anki_connected,
+            "ANKI_DEFAULT_API": difficulty.ANKI_DEFAULT_API,
         })
 
     @property
@@ -83,6 +85,7 @@ class Browse(Page):
     template: ClassVar[str] = "index.html.jinja"
     path: MPath
     sort: str = ""
+    anki_connected: bool = False
 
 
 @dataclass(slots=True)
@@ -112,11 +115,12 @@ async def life(_app: FastAPI):
     difficulty.load_dict_data()
 
     try:
-        await difficulty.load_anki_data()
+        if (resp := await difficulty.anki_load()).status_code >= 400:
+            log.warning("Default AnkiConnect API: %s", resp)
     except httpx.ConnectError:
-        log.warning("Couldn't connect to Anki")
-    except (httpx.HTTPError, difficulty.AnkiError):
-        log.exception("Couldn't load Anki data")
+        log.info("Default AnkiConnect API not reachable")
+    except (httpx.HTTPError, difficulty.AnkiError) as e:
+        log.warning("Default AnkiConnect API: %s", e)
 
     tasks = [
         asyncio.create_task(asyncio.to_thread(catch_log_exceptions(f), EXIT))
@@ -133,6 +137,7 @@ def mount(name: str) -> None:
 
 app = FastAPI(default_response_class=HTMLResponse, lifespan=life, debug=True)
 app.include_router(io.router)
+app.include_router(difficulty.anki_router)
 
 list(map(mount, ["style"]))
 

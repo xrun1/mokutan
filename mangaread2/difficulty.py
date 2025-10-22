@@ -15,8 +15,11 @@ from zipfile import ZipFile
 import fugashi
 import httpx
 import unidic
+from fastapi import APIRouter, Response, status
+from fastapi.datastructures import URL
+from fastapi.responses import RedirectResponse
 
-from mangaread2 import misc
+from . import misc
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -37,9 +40,14 @@ NON_CORE_POS1_DIFFICULTY_FACTORS = {
 }
 
 http = httpx.AsyncClient(follow_redirects=True)
+anki_connected: URL | None = None
 anki_filters = [("Japanese::02 - Kaishi 1.5k", "Kaishi 1.5k", "Word")]
 anki_intervals: dict[str, timedelta] = {}
+
+ANKI_DEFAULT_API = "http://localhost:8765"
 ANKI_MATURE_THRESHOLD = timedelta(days=21)
+
+anki_router = APIRouter(prefix="/anki")
 
 
 class AnkiError(RuntimeError):
@@ -178,40 +186,6 @@ def load_dict_data() -> None:
     jp_freqs.update(out)
 
 
-async def load_anki_data() -> None:
-    async def anki(action: str, **params: Any) -> Any:
-        api = "http://localhost:8765"
-        body = {"action": action, "version": 6, "params": params}
-        resp = await http.post(api, json=body)
-        resp.raise_for_status()
-        data = resp.json()
-        if data["error"]:
-            raise AnkiError(f"{action}: {params}: {data['error']}")
-        return data["result"]
-
-    assert jp_parser
-    learned_before = {term for term, iv in anki_intervals.items() if iv}
-    anki_intervals.clear()
-
-    for deck, note_type, card_field in anki_filters:
-        query = f"deck:{json.dumps(deck)} note:{json.dumps(note_type)}"
-        ids: list[int] = await anki("findCards", query=query)
-        info: list[dict[str, Any]] = await anki("cardsInfo", cards=ids)
-
-        for card in info:
-            iv = card["interval"]
-
-            for part in jp_parser(card["fields"][card_field]["value"]):
-                k = part.feature.orthBase
-                v = timedelta(seconds=iv) if iv < 0 else timedelta(days=iv)
-
-                if k not in anki_intervals or anki_intervals[k] < v:
-                    anki_intervals[k] = v
-
-    if learned_before != {term for term, iv in anki_intervals.items() if iv}:
-        Difficulty.cache.clear()
-
-
 def mark_anki_known_terms(text: str) -> Iterable[str]:
     assert jp_parser
     for part in jp_parser(text):
@@ -266,3 +240,53 @@ def script_difficulty(word: str) -> float:
         factor *= 0.1
 
     return sum(scores) / len(word) * factor
+
+
+@anki_router.get("/load")
+async def anki_load(
+    api: str = ANKI_DEFAULT_API, key: str = "", referer: str = "/",
+) -> Response:
+    async def anki(action: str, **params: Any) -> Any:
+        body = {"action": action, "version": 6, "params": params}
+        if key:
+            body["key"] = key
+        resp = await http.post(api, json=body)
+        resp.raise_for_status()
+        data = resp.json()
+        if data["error"]:
+            raise AnkiError(f"{action}: {params}: {data['error']}")
+        return data["result"]
+
+    result = await anki("requestPermission")
+
+    if result.get("permission") != "granted":
+        return Response("Permission denied from Anki", 403)
+
+    if result.get("requireApiKey") and not key:
+        return Response("This Anki requires an API key", 403)
+
+    assert jp_parser
+    learned_before = {term for term, iv in anki_intervals.items() if iv}
+    anki_intervals.clear()
+
+    for deck, note_type, card_field in anki_filters:
+        query = f"deck:{json.dumps(deck)} note:{json.dumps(note_type)}"
+        ids: list[int] = await anki("findCards", query=query)
+        info: list[dict[str, Any]] = await anki("cardsInfo", cards=ids)
+
+        for card in info:
+            iv = card["interval"]
+
+            for part in jp_parser(card["fields"][card_field]["value"]):
+                k = part.feature.orthBase
+                v = timedelta(seconds=iv) if iv < 0 else timedelta(days=iv)
+
+                if k not in anki_intervals or anki_intervals[k] < v:
+                    anki_intervals[k] = v
+
+    if learned_before != {term for term, iv in anki_intervals.items() if iv}:
+        Difficulty.cache.clear()
+
+    global anki_connected  # noqa: PLW0603
+    anki_connected = URL(api)
+    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)

@@ -3,7 +3,5 @@
 - Show something on browse page when queued
 - Fix recurse ocr behavior
 
-- anki port/api key/decks config UI
-- check connection with proper api first
+- anki decks config UI
 - periodically reload anki data
-- handle connection failure

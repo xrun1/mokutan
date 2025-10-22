@@ -216,3 +216,10 @@ body:has(input[name=sort][value=d]:checked) .sort-ocr-warning,
 body:has(input[name=sort][value=a]:checked) .sort-ocr-warning {
     display: unset;
 }
+
+.anki-connected {
+    margin-top: 0.25rem;
+    margin-left: 1rem;
+    color: var(--accent);
+    opacity: 0.65;
+}
