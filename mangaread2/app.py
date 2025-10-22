@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, ClassVar
 from urllib.parse import parse_qs
 from zipfile import ZipFile
 
+import httpx
 import jinja2
 from fastapi import FastAPI, Request, status
 from fastapi.responses import (
@@ -28,10 +29,10 @@ from mangaread2 import difficulty, io
 from . import DISPLAY_NAME, NAME
 from .io import EXTRACT_DIR, MPath
 from .utils import (
-    CACHE_DIR,
     catch_log_exceptions,
     is_supported_archive,
     is_web_image,
+    log,
 )
 
 if TYPE_CHECKING:
@@ -109,7 +110,14 @@ class Jobs(Page):
 @asynccontextmanager
 async def life(_app: FastAPI):
     difficulty.load_dict_data()
-    await difficulty.load_anki_data()
+
+    try:
+        await difficulty.load_anki_data()
+    except httpx.ConnectError:
+        log.warning("Couldn't connect to Anki")
+    except (httpx.HTTPError, difficulty.AnkiError):
+        log.exception("Couldn't load Anki data")
+
     tasks = [
         asyncio.create_task(asyncio.to_thread(catch_log_exceptions(f), EXIT))
         for f in (io.queue_loop, io.trim_archive_cache)

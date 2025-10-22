@@ -42,6 +42,10 @@ anki_intervals: dict[str, timedelta] = {}
 ANKI_MATURE_THRESHOLD = timedelta(days=21)
 
 
+class AnkiError(RuntimeError):
+    ...
+
+
 @dataclass(slots=True)
 class Difficulty:
     cache: ClassVar[dict[Path, tuple[float, int, Self]]] = {}
@@ -178,10 +182,12 @@ async def load_anki_data() -> None:
     async def anki(action: str, **params: Any) -> Any:
         api = "http://localhost:8765"
         body = {"action": action, "version": 6, "params": params}
-        got = (await http.post(api, json=body)).json()
-        if got["error"]:
-            raise RuntimeError(f"Anki: {action}: {params}: {got['error']}")
-        return got["result"]
+        resp = await http.post(api, json=body)
+        resp.raise_for_status()
+        data = resp.json()
+        if data["error"]:
+            raise AnkiError(f"{action}: {params}: {data['error']}")
+        return data["result"]
 
     assert jp_parser
     learned_before = {term for term, iv in anki_intervals.items() if iv}
