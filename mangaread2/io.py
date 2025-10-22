@@ -10,7 +10,7 @@ import time
 from collections import defaultdict, deque
 from contextlib import suppress
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from itertools import starmap
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
@@ -25,8 +25,8 @@ from natsort import natsorted
 from mangaread2.difficulty import Difficulty, mark_anki_known_terms
 
 from .utils import (
+    CACHE_DIR,
     DATA_DIR,
-    TEMP,
     is_supported_archive,
     is_web_image,
     log,
@@ -42,6 +42,7 @@ from .utils import Point, flatten, get_sorted_dir
 
 router = APIRouter(prefix="/ocr")
 
+EXTRACT_DIR = CACHE_DIR / "Extracted"
 OCR_QUEUE: deque[MPath] = deque()
 IGNORED_ARCHIVES: set[Path] = set()
 LAST_ARCHIVE_ACCESSES: dict[Path, datetime] = {}
@@ -77,9 +78,9 @@ class MPath(Path):
                 return type(self)(str(path).replace(":", "", 1))
             return path
 
-        if (base := TEMP / fix_end(archive)).exists():
+        if (base := EXTRACT_DIR / fix_end(archive)).exists():
             LAST_ARCHIVE_ACCESSES[archive] = datetime.now()
-            return type(self)(TEMP) / fix_end(self)
+            return type(self)(EXTRACT_DIR) / fix_end(self)
 
         async with LOCKS[base]:
             with ZipFile(archive) as arc:
@@ -105,14 +106,14 @@ class MPath(Path):
                 new.rename(base)
 
         LAST_ARCHIVE_ACCESSES[archive] = datetime.now()
-        return type(self)(TEMP) / fix_end(self)
+        return type(self)(EXTRACT_DIR) / fix_end(self)
 
     @property
     def unextracted(self) -> Self:
-        if TEMP not in self.parents:
+        if EXTRACT_DIR not in self.parents:
             return self
 
-        path = str(self).removeprefix(str(TEMP) + os.sep)
+        path = str(self).removeprefix(str(EXTRACT_DIR) + os.sep)
         if os.name == "nt":
             path = path[0] + ":" + path[1:]
 
@@ -405,8 +406,8 @@ def queue_loop(stop: Event) -> None:
 
 
 def trim_archive_cache(stop: Event) -> None:
-    if TEMP.exists():
-        shutil.rmtree(TEMP, ignore_errors=True)
+    if EXTRACT_DIR.exists():
+        shutil.rmtree(EXTRACT_DIR, ignore_errors=True)
 
     while not stop.is_set():
         long_ago = datetime.now() - timedelta(hours=2)

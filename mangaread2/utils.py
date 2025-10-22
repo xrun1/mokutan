@@ -18,8 +18,8 @@ if TYPE_CHECKING:
 log = logging.getLogger(NAME)
 log.setLevel(logging.INFO)
 
-TEMP = Path(gettempdir()) / NAME
 DATA_DIR = Path(appdirs.user_data_dir(NAME, appauthor=False, roaming=True))
+CACHE_DIR = Path(appdirs.user_cache_dir(NAME, appauthor=False))
 
 
 class Point(NamedTuple):
