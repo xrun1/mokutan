@@ -359,8 +359,8 @@ class MPath(Path):
 
     def _mark(self, name: str) -> Path:
         if is_supported_archive(self):
-            return DATA_DIR / "marks" / self.stem / f"{name}.txt"
-        return DATA_DIR / "marks" / self.name / f"{name}.txt"
+            return DATA_DIR / "Marks" / self.stem / f"{name}.txt"
+        return DATA_DIR / "Marks" / self.name / f"{name}.txt"
 
 
 def _run_mokuro(run: Callable[..., None], chapter: Path | str) -> None:
