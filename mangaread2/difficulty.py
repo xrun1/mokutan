@@ -22,6 +22,8 @@ from fastapi import APIRouter, Response, status
 from fastapi.datastructures import URL
 from fastapi.responses import RedirectResponse
 
+from mangaread2.utils import DATA_DIR
+
 from . import misc
 
 if TYPE_CHECKING:
@@ -57,6 +59,7 @@ class AnkiPermissionError(AnkiError): ...  # noqa: E302
 class Anki:
     DEFAULT_API: ClassVar[URL] = URL("http://localhost:8765")
     MATURE_THRESHOLD: ClassVar[timedelta] = timedelta(days=21)
+    SAVE_FILE: ClassVar[Path] = DATA_DIR / "Anki.json"
 
     api: URL = field(default_factory=lambda: Anki.DEFAULT_API)
     key: str = ""
@@ -137,6 +140,12 @@ class Anki:
             Difficulty.cache.clear()
 
         self.loaded = True
+        self.SAVE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        self.SAVE_FILE.write_text(json.dumps({
+            "api": str(self.api),
+            "key": self.key,
+            "filters": self.filters,
+        }, ensure_ascii=False, indent=4), encoding="utf-8")
         return self
 
     async def add_filter(
@@ -165,8 +174,14 @@ class Anki:
             else:
                 yield f"<span class=anki-mature>{clean}</span>"
 
+    @classmethod
+    def restore_saved(cls) -> Self:
+        if cls.SAVE_FILE.exists():
+            return cls(**json.loads(cls.SAVE_FILE.read_text(encoding="utf-8")))
+        return cls()
 
-anki = Anki()
+
+anki = Anki.restore_saved()
 
 
 @dataclass(slots=True)
