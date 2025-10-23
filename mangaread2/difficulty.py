@@ -6,6 +6,7 @@ import math
 from collections import Counter
 from dataclasses import dataclass
 from datetime import timedelta
+from functools import lru_cache
 from importlib import resources
 from io import BytesIO
 from pathlib import Path
@@ -15,6 +16,7 @@ from zipfile import ZipFile
 import fugashi
 import httpx
 import unidic
+from cihai.core import Cihai
 from fastapi import APIRouter, Response, status
 from fastapi.datastructures import URL
 from fastapi.responses import RedirectResponse
@@ -25,8 +27,10 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
 jp_parser: fugashi.Tagger | None = None  # dict may not be downloaded yet
+kanji_parser: Cihai | None = None  # same for DB
 jp_freqs: dict[str | tuple[str, str], int] = {}
 
+AVG_KANJI_STROKES = 11
 NON_CORE_POS1_DIFFICULTY_FACTORS = {
     "助詞": 0,  # Particles
     "補助記号": 0,  # Punctuation, brackets...
@@ -156,6 +160,11 @@ class Difficulty:
 
 
 def load_dict_data() -> None:
+    global kanji_parser
+    kanji_parser = Cihai()
+    if not kanji_parser.unihan.is_bootstrapped:
+        kanji_parser.unihan.bootstrap()
+
     if not Path(unidic.DICDIR).exists():
         print(unidic.DICDIR)
         from unidic.download import download_version
@@ -219,6 +228,14 @@ def is_kanji(char: str) -> bool:
     )
 
 
+@lru_cache(32768)
+def kanji_stroke_count(char: str) -> int | None:
+    assert kanji_parser
+    if not (k := kanji_parser.unihan.lookup_char(char).first()):
+        return None
+    return int(k.kTotalStrokes)  # pyright:ignore[reportAttributeAccessIssue]
+
+
 def script_difficulty(word: str) -> float:
     def score_char(char: str) -> float:
         if is_hiragana(char):
@@ -226,7 +243,8 @@ def script_difficulty(word: str) -> float:
         if is_katakana(char):
             return 0.4
         if is_kanji(char):
-            return 1
+            strokes = kanji_stroke_count(char) or AVG_KANJI_STROKES
+            return max(0.5, 1.5 * (strokes / AVG_KANJI_STROKES))
         return 0
 
     scores = [score_char(char) for char in word]
