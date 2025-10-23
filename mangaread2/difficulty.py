@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import html
 import json
 import math
@@ -45,7 +46,11 @@ NON_CORE_POS1_DIFFICULTY_FACTORS = {
 
 http = httpx.AsyncClient(follow_redirects=True)
 anki_connected: URL | None = None
-anki_filters = [("Japanese::02 - Kaishi 1.5k", "Kaishi 1.5k", "Word")]
+anki_api_key: str = ""
+anki_decks: list[str] = []
+anki_note_types: list[str] = []
+anki_note_fields: set[str] = set()
+anki_filters: list[tuple[str, str, str]] = []
 anki_intervals: dict[str, timedelta] = {}
 
 ANKI_DEFAULT_API = "http://localhost:8765"
@@ -286,6 +291,16 @@ async def anki_load(
     assert jp_parser
     learned_before = {term for term, iv in anki_intervals.items() if iv}
     anki_intervals.clear()
+    anki_decks.clear()
+    anki_note_types.clear()
+    anki_note_fields.clear()
+
+    anki_decks.extend(await anki("deckNames"))
+    anki_note_types.extend(await anki("modelNames"))
+    for fields in (await asyncio.gather(*[
+        anki("modelFieldNames", modelName=note) for note in anki_note_types
+    ])):
+        anki_note_fields.update(fields)
 
     for deck, note_type, card_field in anki_filters:
         query = f"deck:{json.dumps(deck)} note:{json.dumps(note_type)}"
@@ -305,6 +320,23 @@ async def anki_load(
     if learned_before != {term for term, iv in anki_intervals.items() if iv}:
         Difficulty.cache.clear()
 
-    global anki_connected  # noqa: PLW0603
+    global anki_connected, anki_api_key  # noqa: PLW0603
     anki_connected = URL(api)
+    anki_api_key = key
     return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
+
+
+@anki_router.get("/filter/add")
+async def anki_add_filter(
+    deck: str, note_type: str, field: str, referer: str = "/",
+) -> Response:
+    assert anki_connected
+    anki_filters.append((deck, note_type, field))
+    return await anki_load(str(anki_connected), anki_api_key, referer)
+
+
+@anki_router.get("/filter/del")
+async def anki_delete_filter(index: int, referer: str = "/") -> Response:
+    assert anki_connected
+    del anki_filters[index]
+    return await anki_load(str(anki_connected), anki_api_key, referer)

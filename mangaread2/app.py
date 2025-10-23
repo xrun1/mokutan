@@ -70,6 +70,13 @@ class Page(ABC):
             "DISPLAY_NAME": DISPLAY_NAME,
             "no_emoji": "&#xFE0E;",
             "anki_connected": difficulty.anki_connected,
+            "anki_decks": difficulty.anki_decks,
+            "anki_note_types": difficulty.anki_note_types,
+            "anki_note_fields": sorted(difficulty.anki_note_fields),
+            "anki_filters": difficulty.anki_filters,
+            "anki_learned_count": len({
+                term for term, iv in difficulty.anki_intervals.items() if iv
+            }),
             "ANKI_DEFAULT_API": difficulty.ANKI_DEFAULT_API,
         })
 
@@ -85,7 +92,6 @@ class Browse(Page):
     template: ClassVar[str] = "index.html.jinja"
     path: MPath
     sort: str = ""
-    anki_connected: bool = False
 
 
 @dataclass(slots=True)

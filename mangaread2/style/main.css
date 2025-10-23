@@ -223,3 +223,24 @@ body:has(input[name=sort][value=a]:checked) .sort-ocr-warning {
     color: var(--accent);
     opacity: 0.65;
 }
+
+details:not(:has(.anki-connected)) .anki-filters-title {
+    display: none;
+}
+
+.anki-filter-row {
+    line-height: 2.6rem;
+}
+
+.anki-filters-title {
+    margin-top: 1rem;
+    margin-bottom: 0;
+    font-weight: normal;
+}
+
+.anki-learned-count {
+    margin-top: 0.25rem;
+    margin-bottom: 0;
+    color: var(--accent);
+    opacity: 0.65;
+}
