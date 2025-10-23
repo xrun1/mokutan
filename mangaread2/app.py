@@ -93,8 +93,8 @@ class WindowsDrives(Page):
     template: ClassVar[str] = "drives.html.jinja"
 
     @property
-    def drives(self) -> list[Path]:
-        return list(map(Path, os.listdrives()))
+    def drives(self) -> list[MPath]:
+        return list(map(MPath, os.listdrives()))
 
 
 @dataclass(slots=True)
