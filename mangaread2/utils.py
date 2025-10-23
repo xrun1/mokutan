@@ -4,7 +4,6 @@ import functools
 import logging
 import mimetypes
 from pathlib import Path
-from tempfile import gettempdir
 from typing import TYPE_CHECKING, NamedTuple
 
 import appdirs
