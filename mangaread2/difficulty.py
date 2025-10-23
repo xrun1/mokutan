@@ -68,8 +68,22 @@ class Anki:
     intervals: dict[str, timedelta] = field(default_factory=dict)
 
     @property
-    def learned_count(self) -> int:
-        return len([i for i in self.intervals.values() if i])
+    def learned(self) -> set[str]:
+        return {term for term, i in self.intervals.items() if i}
+
+    @property
+    def young(self) -> set[str]:
+        return {
+            term for term, i in self.intervals.items()
+            if i and i < self.MATURE_THRESHOLD
+        }
+
+    @property
+    def mature(self) -> set[str]:
+        return {
+            term for term, i in self.intervals.items()
+            if i >= self.MATURE_THRESHOLD
+        }
 
     async def do(self, action: str, **params: Any) -> Any:
         body = {"action": action, "version": 6, "params": params}

@@ -192,7 +192,8 @@
 
         {% if anki.filters or anki.learned_count %}
             <p class=anki-learned-count>
-                ✔ {{anki.learned_count}} learned words parsed
+                ✔ {{anki.learned|length}} learned words parsed
+                ({{anki.young|length}} young, {{anki.mature|length}} mature)
             </p>
         {% endif %}
     </details>
