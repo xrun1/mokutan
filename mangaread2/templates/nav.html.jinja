@@ -120,7 +120,7 @@
         <form class=anki action="/anki/load">
             <label>Address:
                 <input type=url name=api
-                    value="{{anki_connected or ANKI_DEFAULT_API}}">
+                    value="{{anki.api or anki.DEFAULT_API}}">
             </label>
             <label>API Key:
                 <input type=password name=key
@@ -129,7 +129,7 @@
 
             <input type=hidden name=referer value="{{request.url}}">
 
-            {% if anki_connected %}
+            {% if anki.loaded %}
                 <button class=connect type="submit">Reload</button>
                 <span class=anki-connected>✔ Connected</span>
             {% else %}
@@ -139,7 +139,7 @@
 
         <h4 class=anki-filters-title>Gather learned words from:</h4>
 
-        {% for filter in anki_filters %}
+        {% for filter in anki.filters %}
             <form class="anki-filter-row" action="/anki/filter/del">
                 <label>Deck:
                     <select disabled><option>{{filter[0]}}</option></select>
@@ -157,12 +157,12 @@
             </form>
         {% endfor %}
 
-        {% if anki_connected %}
+        {% if anki.loaded %}
             <form class="anki-filter-row add-row" action="/anki/filter/add">
                 <label>Deck:
                     <select name="deck">
                         <option value="*">Any</option>
-                        {% for deck in anki_decks %}
+                        {% for deck in anki.decks %}
                             <option value="{{deck}}">{{deck}}</option>
                         {% endfor %}
                     </select>
@@ -171,7 +171,7 @@
                 <label>Note Type:
                     <select name="note_type">
                         <option value="*">Any</option>
-                        {% for note in anki_note_types %}
+                        {% for note in anki.note_types %}
                             <option value="{{note}}">{{note}}</option>
                         {% endfor %}
                     </select>
@@ -179,7 +179,7 @@
 
                 <label>Note Field:
                     <select name="field">
-                        {% for field in anki_note_fields %}
+                        {% for field in (anki.note_fields | sort) %}
                             <option value="{{field}}">{{field}}</option>
                         {% endfor %}
                     </select>
@@ -190,9 +190,9 @@
             </form>
         {% endif %}
 
-        {% if anki_filters or anki_learned_count %}
+        {% if anki.filters or anki.learned_count %}
             <p class=anki-learned-count>
-                ✔ {{anki_learned_count}} learned words parsed
+                ✔ {{anki.learned_count}} learned words parsed
             </p>
         {% endif %}
     </details>

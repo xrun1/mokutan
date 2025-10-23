@@ -22,7 +22,7 @@ from fastapi.datastructures import URL
 from fastapi.responses import RedirectResponse
 from natsort import natsorted
 
-from mangaread2.difficulty import Difficulty, mark_anki_known_terms
+from mangaread2.difficulty import Difficulty, anki
 
 from .utils import (
     CACHE_DIR,
@@ -314,7 +314,7 @@ class MPath(Path):
                     ))
 
                 box = boxes[-1]
-                box.lines.append("".join(mark_anki_known_terms(line)))
+                box.lines.append("".join(anki.html_mark_known(line)))
                 box.x = min(box.x, start.x)
                 box.y = min(box.y, start.y)
                 box.w = max(box.w, end.x - box.x)

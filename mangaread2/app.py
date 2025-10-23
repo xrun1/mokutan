@@ -69,15 +69,7 @@ class Page(ABC):
         } | {
             "DISPLAY_NAME": DISPLAY_NAME,
             "no_emoji": "&#xFE0E;",
-            "anki_connected": difficulty.anki_connected,
-            "anki_decks": difficulty.anki_decks,
-            "anki_note_types": difficulty.anki_note_types,
-            "anki_note_fields": sorted(difficulty.anki_note_fields),
-            "anki_filters": difficulty.anki_filters,
-            "anki_learned_count": len({
-                term for term, iv in difficulty.anki_intervals.items() if iv
-            }),
-            "ANKI_DEFAULT_API": difficulty.ANKI_DEFAULT_API,
+            "anki": difficulty.anki,
         })
 
     @property
@@ -121,8 +113,7 @@ async def life(_app: FastAPI):
     difficulty.load_dict_data()
 
     try:
-        if (resp := await difficulty.anki_load()).status_code >= 400:
-            log.warning("Default AnkiConnect API: %s", resp)
+        await difficulty.anki.load()
     except httpx.ConnectError:
         log.info("Default AnkiConnect API not reachable")
     except (httpx.HTTPError, difficulty.AnkiError) as e:

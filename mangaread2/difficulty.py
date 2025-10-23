@@ -5,7 +5,7 @@ import html
 import json
 import math
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 from functools import lru_cache
 from importlib import resources
@@ -45,22 +45,114 @@ NON_CORE_POS1_DIFFICULTY_FACTORS = {
 }
 
 http = httpx.AsyncClient(follow_redirects=True)
-anki_connected: URL | None = None
-anki_api_key: str = ""
-anki_decks: list[str] = []
-anki_note_types: list[str] = []
-anki_note_fields: set[str] = set()
-anki_filters: list[tuple[str, str, str]] = []
-anki_intervals: dict[str, timedelta] = {}
-
-ANKI_DEFAULT_API = "http://localhost:8765"
-ANKI_MATURE_THRESHOLD = timedelta(days=21)
 
 anki_router = APIRouter(prefix="/anki")
 
 
-class AnkiError(RuntimeError):
-    ...
+class AnkiError(RuntimeError): ...
+class AnkiPermissionError(AnkiError): ...  # noqa: E302
+
+
+@dataclass(slots=True)
+class Anki:
+    DEFAULT_API: ClassVar[URL] = URL("http://localhost:8765")
+    MATURE_THRESHOLD: ClassVar[timedelta] = timedelta(days=21)
+
+    api: URL = field(default_factory=lambda: Anki.DEFAULT_API)
+    key: str = ""
+    loaded: bool = False
+    decks: list[str] = field(default_factory=list)
+    note_types: list[str] = field(default_factory=list)
+    note_fields: set[str] = field(default_factory=set)
+    filters: list[tuple[str, str, str]] = field(default_factory=list)
+    intervals: dict[str, timedelta] = field(default_factory=dict)
+
+    @property
+    def learned_count(self) -> int:
+        return len([i for i in self.intervals.values() if i])
+
+    async def do(self, action: str, **params: Any) -> Any:
+        body = {"action": action, "version": 6, "params": params}
+        if self.key:
+            body["key"] = self.key
+        resp = await http.post(str(self.api), json=body)
+        resp.raise_for_status()
+        data = resp.json()
+        if data["error"]:
+            raise AnkiError(f"{action}: {params}: {data['error']}")
+        return data["result"]
+
+    async def load(self) -> Self:
+        self.loaded = False
+        result = await self.do("requestPermission")
+
+        if result.get("permission") != "granted":
+            raise AnkiPermissionError("Permission denied from Anki")
+
+        if result.get("requireApiKey") and not self.key:
+            raise AnkiPermissionError("This Anki requires an API key")
+
+        assert jp_parser
+        learned_before = {term for term, i in self.intervals.items() if i}
+        self.intervals.clear()
+        self.note_fields.clear()
+
+        self.decks = await self.do("deckNames")
+        self.note_types = await self.do("modelNames")
+        for fields in (await asyncio.gather(*[
+            self.do("modelFieldNames", modelName=n) for n in self.note_types
+        ])):
+            self.note_fields.update(fields)
+
+        for deck, note_type, card_field in self.filters:
+            query = f"deck:{json.dumps(deck)} note:{json.dumps(note_type)}"
+            ids: list[int] = await self.do("findCards", query=query)
+            info: list[dict[str, Any]] = await self.do("cardsInfo", cards=ids)
+
+            for card in info:
+                iv = card["interval"]
+
+                for part in jp_parser(card["fields"][card_field]["value"]):
+                    k = part.feature.orthBase
+                    v = timedelta(seconds=iv) if iv < 0 else timedelta(days=iv)
+
+                    if k not in self.intervals or self.intervals[k] < v:
+                        self.intervals[k] = v
+
+        if learned_before != {term for term, i in self.intervals.items() if i}:
+            Difficulty.cache.clear()
+
+        self.loaded = True
+        return self
+
+    async def add_filter(
+        self, field: str, note_type: str = "*", deck: str = "*",
+    ) -> Self:
+        self.filters.append((deck, note_type, field))
+        return await self.load()
+
+    async def delete_filter(self, index: int) -> Self:
+        del self.filters[index]
+        return await self.load()
+
+    def html_mark_known(self, text: str) -> Iterable[str]:
+        assert jp_parser
+        for part in jp_parser(text):
+            iv = self.intervals.get(part.feature.orthBase)
+            clean = html.escape(part.surface)
+            pos1 = part.feature.pos1
+
+            if iv is None or pos1 in NON_CORE_POS1_DIFFICULTY_FACTORS:
+                yield clean
+            elif not iv:
+                yield f"<span class=anki-new>{clean}</span>"
+            elif iv < self.MATURE_THRESHOLD:
+                yield f"<span class=anki-young>{clean}</span>"
+            else:
+                yield f"<span class=anki-mature>{clean}</span>"
+
+
+anki = Anki()
 
 
 @dataclass(slots=True)
@@ -129,11 +221,11 @@ class Difficulty:
                 1000
             )
 
-            if (iv := anki_intervals.get(t.feature.orthBase)):
+            if (iv := anki.intervals.get(t.feature.orthBase)):
                 nonlocal anki_bonus
                 intervals.append(iv)
                 new_base = 10_000
-                new_base -= new_base * (iv / ANKI_MATURE_THRESHOLD)
+                new_base -= new_base * (iv / anki.MATURE_THRESHOLD)
                 new_base = max(new_base, 0)
                 anki_bonus += base - new_base
                 base = new_base
@@ -156,7 +248,7 @@ class Difficulty:
             terms_per_page=avg_terms_per_page,
             anki_learned=len(intervals),
             anki_mature=len([
-                iv for iv in intervals if iv >= ANKI_MATURE_THRESHOLD
+                iv for iv in intervals if iv >= anki.MATURE_THRESHOLD
             ]),
             anki_score_decrease=adjust(anki_bonus),
         )
@@ -165,7 +257,7 @@ class Difficulty:
 
 
 def load_dict_data() -> None:
-    global kanji_parser
+    global kanji_parser  # noqa: PLW0603
     kanji_parser = Cihai()
     if not kanji_parser.unihan.is_bootstrapped:
         kanji_parser.unihan.bootstrap()
@@ -198,23 +290,6 @@ def load_dict_data() -> None:
             out[k] = v
 
     jp_freqs.update(out)
-
-
-def mark_anki_known_terms(text: str) -> Iterable[str]:
-    assert jp_parser
-    for part in jp_parser(text):
-        iv = anki_intervals.get(part.feature.orthBase)
-        clean = html.escape(part.surface)
-        pos1 = part.feature.pos1
-
-        if iv is None or pos1 in NON_CORE_POS1_DIFFICULTY_FACTORS:
-            yield clean
-        elif not iv:
-            yield f"<span class=anki-new>{clean}</span>"
-        elif iv < ANKI_MATURE_THRESHOLD:
-            yield f"<span class=anki-young>{clean}</span>"
-        else:
-            yield f"<span class=anki-mature>{clean}</span>"
 
 
 def is_hiragana(char: str) -> bool:
@@ -266,77 +341,24 @@ def script_difficulty(word: str) -> float:
 
 
 @anki_router.get("/load")
-async def anki_load(
-    api: str = ANKI_DEFAULT_API, key: str = "", referer: str = "/",
-) -> Response:
-    async def anki(action: str, **params: Any) -> Any:
-        body = {"action": action, "version": 6, "params": params}
-        if key:
-            body["key"] = key
-        resp = await http.post(api, json=body)
-        resp.raise_for_status()
-        data = resp.json()
-        if data["error"]:
-            raise AnkiError(f"{action}: {params}: {data['error']}")
-        return data["result"]
-
-    result = await anki("requestPermission")
-
-    if result.get("permission") != "granted":
-        return Response("Permission denied from Anki", 403)
-
-    if result.get("requireApiKey") and not key:
-        return Response("This Anki requires an API key", 403)
-
-    assert jp_parser
-    learned_before = {term for term, iv in anki_intervals.items() if iv}
-    anki_intervals.clear()
-    anki_decks.clear()
-    anki_note_types.clear()
-    anki_note_fields.clear()
-
-    anki_decks.extend(await anki("deckNames"))
-    anki_note_types.extend(await anki("modelNames"))
-    for fields in (await asyncio.gather(*[
-        anki("modelFieldNames", modelName=note) for note in anki_note_types
-    ])):
-        anki_note_fields.update(fields)
-
-    for deck, note_type, card_field in anki_filters:
-        query = f"deck:{json.dumps(deck)} note:{json.dumps(note_type)}"
-        ids: list[int] = await anki("findCards", query=query)
-        info: list[dict[str, Any]] = await anki("cardsInfo", cards=ids)
-
-        for card in info:
-            iv = card["interval"]
-
-            for part in jp_parser(card["fields"][card_field]["value"]):
-                k = part.feature.orthBase
-                v = timedelta(seconds=iv) if iv < 0 else timedelta(days=iv)
-
-                if k not in anki_intervals or anki_intervals[k] < v:
-                    anki_intervals[k] = v
-
-    if learned_before != {term for term, iv in anki_intervals.items() if iv}:
-        Difficulty.cache.clear()
-
-    global anki_connected, anki_api_key  # noqa: PLW0603
-    anki_connected = URL(api)
-    anki_api_key = key
+async def anki_load(api: str, key: str = "", referer: str = "/") -> Response:
+    global anki  # noqa: PLW0603
+    try:
+        anki = await Anki(URL(api), key).load()
+    except AnkiPermissionError as e:
+        return Response(str(e), status.HTTP_403_FORBIDDEN)
     return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
 
 
 @anki_router.get("/filter/add")
 async def anki_add_filter(
-    deck: str, note_type: str, field: str, referer: str = "/",
+    field: str, note_type: str = "*", deck: str = "*", referer: str = "/",
 ) -> Response:
-    assert anki_connected
-    anki_filters.append((deck, note_type, field))
-    return await anki_load(str(anki_connected), anki_api_key, referer)
+    await anki.add_filter(field, note_type, deck)
+    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
 
 
 @anki_router.get("/filter/del")
-async def anki_delete_filter(index: int, referer: str = "/") -> Response:
-    assert anki_connected
-    del anki_filters[index]
-    return await anki_load(str(anki_connected), anki_api_key, referer)
+async def anki_delete_filter(index: int, referer: str) -> Response:
+    await anki.delete_filter(index)
+    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
