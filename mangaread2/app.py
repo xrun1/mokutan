@@ -115,7 +115,10 @@ async def life(_app: FastAPI):
     try:
         await difficulty.anki.load()
     except httpx.ConnectError:
-        log.info("Default AnkiConnect API not reachable")
+        if difficulty.anki.api == difficulty.anki.DEFAULT_API:
+            log.info("Default AnkiConnect API not reachable")
+        else:
+            log.warning("AnkiConnect API not reachable")
     except (httpx.HTTPError, difficulty.AnkiError) as e:
         log.warning("Default AnkiConnect API: %s", e)
 
