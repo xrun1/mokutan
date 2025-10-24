@@ -25,6 +25,7 @@ from fastapi.responses import RedirectResponse
 from mangaread2.utils import DATA_DIR
 
 from . import misc
+from .utils import log
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -150,6 +151,17 @@ class Anki:
             "filters": self.filters,
         }, ensure_ascii=False, indent=4), encoding="utf-8")
         return self
+
+    async def keep_updated(self, interval: float = 600) -> None:
+        while True:
+            try:
+                await self.load()
+            except httpx.ConnectError:
+                log.info("AnkiConnect API at %s not reachable", self.api)
+            except (httpx.HTTPError, AnkiError) as e:
+                log.warning("AnkiConnect API: %s", e)
+
+            await asyncio.sleep(interval)
 
     async def add_filter(
         self, field: str, note_type: str = "*", deck: str = "*",

@@ -111,24 +111,16 @@ class Jobs(Page):
 @asynccontextmanager
 async def life(_app: FastAPI):
     difficulty.load_dict_data()
-
-    try:
-        await difficulty.anki.load()
-    except httpx.ConnectError:
-        if difficulty.anki.api == difficulty.anki.DEFAULT_API:
-            log.info("Default AnkiConnect API not reachable")
-        else:
-            log.warning("AnkiConnect API not reachable")
-    except (httpx.HTTPError, difficulty.AnkiError) as e:
-        log.warning("Default AnkiConnect API: %s", e)
-
-    tasks = [
+    await difficulty.anki.load()
+    tasks = [asyncio.create_task(difficulty.anki.keep_updated())]
+    tasks += [
         asyncio.create_task(asyncio.to_thread(catch_log_exceptions(f), EXIT))
         for f in (io.queue_loop, io.trim_archive_cache)
     ]
     yield
     EXIT.set()
-    await asyncio.gather(*tasks)
+    [t.cancel() for t in tasks]
+    await asyncio.gather(*tasks, return_exceptions=True)
 
 
 def mount(name: str) -> None:
