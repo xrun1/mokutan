@@ -354,7 +354,7 @@ class MPath(Path):
             return ([], -1)
         chapters = self._sort(sort, (
             p for p in self.unextracted.parent.iterdir()
-            if p.is_dir() or is_supported_archive(p)
+            if (p.is_dir() and p.name != "_ocr") or is_supported_archive(p)
         ))
         return (chapters, chapters.index(self.unextracted.parent / self.name))
 

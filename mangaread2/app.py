@@ -69,6 +69,7 @@ class Page(ABC):
         } | {
             "DISPLAY_NAME": DISPLAY_NAME,
             "no_emoji": "&#xFE0E;",
+            "os_sep": os.sep,
             "anki": difficulty.anki,
         })
 

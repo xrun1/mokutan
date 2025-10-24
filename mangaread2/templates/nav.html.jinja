@@ -1,4 +1,5 @@
 <nav>
+    {% set next_chapter = path.next_chapter(sort) %}
     <h2>
         {% set parent = path.unextracted.parent %}
         {% if parent == path %}
@@ -20,10 +21,10 @@
 
         {{path.name or path}}
 
-        {% if path.next_chapter(sort) %}
+        {% if next_chapter %}
             &#32;<a
                 title=Next
-                href="{{path.next_chapter(sort).url(sort=sort)}}"
+                href="{{next_chapter.url(sort=sort)}}"
             >⭢</a>
         {% endif %}
 
@@ -84,15 +85,16 @@
             <span {{"" if path.ocr_can_begin else "disabled"}}>
                 <input type=hidden name=sort value="{{sort}}">
                 <input type=hidden name=referer value="{{request.url}}">
-                <label>
-                    <input
-                        type=checkbox
-                        name=keep_going
-                        value=1
-                        {{"" if path.next_chapter else "disabled"}}
-                    >
-                    Scan next chapters/folders too
-                </label>
+                {% if next_chapter %}
+                    <label>
+                        <input type=checkbox name=keep_going value=1>
+                        Scan next folders too
+                        (<a
+                            href="{{next_chapter.url(sort=sort)}}"
+                        >..{{os_sep}}{{next_chapter.name}}
+                        </a> and further)
+                    </label>
+                {% endif %}
                 <label>
                     <input type=checkbox name=recursive value=1>
                     Recurse down subfolders
