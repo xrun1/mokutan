@@ -110,17 +110,18 @@ class Anki:
             raise AnkiPermissionError("This Anki requires an API key")
 
         assert jp_parser
-        learned_before = {term for term, i in self.intervals.items() if i}
-        self.intervals.clear()
-        self.note_fields.clear()
 
         self.decks = await self.do("deckNames")
         self.note_types = await self.do("modelNames")
+
+        note_fields = set()
         for fields in (await asyncio.gather(*[
             self.do("modelFieldNames", modelName=n) for n in self.note_types
         ])):
-            self.note_fields.update(fields)
+            note_fields.update(fields)
+        self.note_fields = note_fields
 
+        intervals = {}
         for deck, note_type, card_field in self.filters:
             query = f"deck:{json.dumps(deck)} note:{json.dumps(note_type)}"
             ids: list[int] = await self.do("findCards", query=query)
@@ -133,10 +134,12 @@ class Anki:
                     k = part.feature.orthBase
                     v = timedelta(seconds=iv) if iv < 0 else timedelta(days=iv)
 
-                    if k not in self.intervals or self.intervals[k] < v:
-                        self.intervals[k] = v
+                    if k not in intervals or intervals[k] < v:
+                        intervals[k] = v
 
-        if learned_before != {term for term, i in self.intervals.items() if i}:
+        learned_before = self.learned
+        self.intervals = intervals
+        if learned_before != self.learned:
             Difficulty.cache.clear()
 
         self.loaded = True
