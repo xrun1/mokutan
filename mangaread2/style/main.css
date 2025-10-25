@@ -23,7 +23,7 @@ body {
     outline: 1px solid var(--accent);
 }
 
-nav, h4 {
+nav, h4, #actions {
     color: var(--text);
     word-wrap: break-word;
 }
