@@ -22,7 +22,7 @@ from fastapi.datastructures import URL
 from fastapi.responses import RedirectResponse
 from natsort import natsorted
 
-from mangaread2.difficulty import Difficulty, ANKI
+from mangaread2.difficulty import ANKI, Difficulty
 
 from .utils import (
     CACHE_DIR,
