@@ -221,7 +221,8 @@ span[disabled] {
 }
 
 body:has(input[name=sort][value=d]:checked) .sort-ocr-warning,
-body:has(input[name=sort][value=a]:checked) .sort-ocr-warning {
+body:has(input[name=sort][value=a]:checked) .sort-ocr-warning,
+body:has(input[name=sort][value=x]:checked) .sort-ocr-warning {
     display: unset;
 }
 
