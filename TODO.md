@@ -1,2 +1,1 @@
-- Make boxes keyboard and touch-compatible
-- Show something on browse page when queued
+- Improve design
