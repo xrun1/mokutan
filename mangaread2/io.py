@@ -262,7 +262,7 @@ class MPath(Path):
     def mark_unread(self) -> None:
         self.set_mark("read", None)
 
-    def ocr_boxes(self, image: Path) -> Iterable[OCRBox]:
+    def ocr_box_groups(self, image: Path) -> Iterable[list[OCRBox]]:
         if self.ocr_json_file.exists():
             data = json.load(self.ocr_json_file.open(encoding="utf-8"))
         elif self.ocr_wip_dir.exists():
@@ -337,7 +337,8 @@ class MPath(Path):
                 box.h /= page_h
                 if box.vertical:
                     box.lines.reverse()
-                yield box
+
+            yield boxes
 
     @classmethod
     def _sort(cls, sort: str, p: Iterable[Self]) -> list[Self]:

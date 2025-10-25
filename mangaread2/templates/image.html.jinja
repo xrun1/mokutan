@@ -11,20 +11,27 @@
 <div class=page>
     <img id="{{img.as_anchor}}" src="{{img.url()}}" loading=lazy>
 
-    {% for box in path.ocr_boxes(img) %}
-        <pre style="
-            left: {{box.x * 100}}%;
-            top: {{box.y * 100}}%;
-            font-size: min(
-                {{box.font_size}}px,
-                {{box.font_size * 100 / box.image_w}}vw
-            );
-            {% if box.vertical %}
-                writing-mode: vertical-rl;
-                text-orientation: upright;  {# Affects single width ?/!/etc #}
-            {% endif %}
-        ">
-            {{"\n".join(box.lines)}}
-        </pre>
+    {% for group in path.ocr_box_groups(img) %}
+        <div class=ocr-group>
+        {% for box in group %}
+            {% for kind in ["bg", "fg"] %}
+                <pre class=ocr-box-{{kind}} style="
+                    left: {{box.x * 100}}%;
+                    top: {{box.y * 100}}%;
+                    font-size: min(
+                        {{box.font_size}}px,
+                        {{box.font_size * 100 / box.image_w}}vw
+                    );
+                    {% if box.vertical %}
+                        writing-mode: vertical-rl;
+                        {# Affects normalized single width ?/!/etc #}
+                        text-orientation: upright;
+                    {% endif %}
+                ">
+                    {{"\n".join(box.lines)}}
+                </pre>
+            {% endfor %}
+        {% endfor %}
+        </div>
     {% endfor %}
 </div>
