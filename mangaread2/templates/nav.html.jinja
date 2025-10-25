@@ -83,22 +83,24 @@
         <summary>OCR</summary>
 
         {% if path.ocr_running %}
-            <div class=progress title="In progress">
+            <span class=progress title="In progress">
                 ⏵ {{path.ocr_progress_text}}
-            </div>
+            </span>
         {% elif path.ocr_paused %}
-            <div class=progress title="All OCR jobs are paused">
+            <span class=progress title="All OCR jobs are paused">
                 ⏸ {{path.ocr_progress_text}}
-            </div>
+            </span>
         {% elif path.ocr_queued %}
-            <div class=progress title="Waiting for other jobs to finish">
+            <span class=progress title="Waiting for other jobs to finish">
                 ⏳{{no_emoji}} {{path.ocr_progress_text}}
-            </div>
+            </span>
         {% elif path.ocr_done %}
-            <div class=progress title="OCR done">
+            <span class=progress title="OCR done">
                 ✔ {{path.ocr_progress_text}}
-            </div>
+            </span>
         {% endif %}
+
+        <a href="/jobs#{{path.as_anchor}}">Queue</a>
 
         <form action="/ocr/start{{path.url()}}">
             <span {{"" if path.ocr_can_begin else "disabled"}}>
@@ -125,8 +127,6 @@
                 </label>
                 <button type=submit>Start</button>&emsp;
             </span>
-
-            <a href="/jobs#{{path.as_anchor}}">Queue</a>
         </form>
     </details>
     <br>
