@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, ClassVar
 from urllib.parse import parse_qs
 from zipfile import ZipFile
 
-import httpx
 import jinja2
 from fastapi import FastAPI, Request, status
 from fastapi.responses import (
@@ -33,7 +32,6 @@ from .utils import (
     ellide,
     is_supported_archive,
     is_web_image,
-    log,
 )
 
 if TYPE_CHECKING:
