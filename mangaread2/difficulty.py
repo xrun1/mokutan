@@ -170,11 +170,15 @@ class Anki:
         self, field: str, note_type: str = "*", deck: str = "*",
     ) -> Self:
         self.filters.append((deck, note_type, field))
-        return await self.load()
+        if self.loaded:
+            return await self.load()
+        return self
 
     async def delete_filter(self, index: int) -> Self:
         del self.filters[index]
-        return await self.load()
+        if self.loaded:
+            return await self.load()
+        return self
 
     def html_mark_known(self, text: str) -> Iterable[str]:
         assert jp_parser
