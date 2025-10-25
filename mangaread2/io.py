@@ -195,7 +195,7 @@ class MPath(Path):
     @property
     def ocr_done(self) -> bool:
         done, total = self.ocr_progress
-        return done >= total
+        return 0 < done >= total
 
     @property
     def read_date(self) -> tuple[datetime, timedelta, str] | None:
