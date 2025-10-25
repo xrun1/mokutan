@@ -14,6 +14,7 @@ from datetime import UTC, datetime, timedelta
 from itertools import starmap
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
+import unicodedata
 from uuid import uuid4
 from zipfile import ZipFile
 
@@ -318,6 +319,9 @@ class MPath(Path):
                     ))
 
                 box = boxes[-1]
+                # Convert double-width latin characters to normal ones,
+                # as they're reponsible for most text box overflows
+                line = unicodedata.normalize("NFKC", line)
                 box.lines.append("".join(ANKI.html_mark_known(line)))
                 box.x = min(box.x, start.x)
                 box.y = min(box.y, start.y)

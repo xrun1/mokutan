@@ -21,6 +21,7 @@
             );
             {% if box.vertical %}
                 writing-mode: vertical-rl;
+                text-orientation: upright;  {# Affects single width ?/!/etc #}
             {% endif %}
         ">
             {{"\n".join(box.lines)}}
