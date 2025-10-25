@@ -365,6 +365,19 @@ class MPath(Path):
 
 
 def _run_mokuro(run: Callable[..., None], chapter: Path | str) -> None:
+    from mokuro.volume import Volume
+
+    def patched(self: Volume):
+        assert self.path_in.is_dir()
+        # Make it non-recursive (we handle that) and handle more image formats
+        img_paths = natsorted(
+            p.relative_to(self.path_in) for p in self.path_in.glob("*")
+            if p.is_file() and is_web_image(p)
+        )
+        return {p.with_suffix(""): p for p in img_paths}
+
+    Volume.get_img_paths = patched
+
     with wakepy.keep.running():
         # Will continue any uncompleted work or exit early if already processed
         run(str(chapter), disable_confirmation=True, legacy_html=False)
