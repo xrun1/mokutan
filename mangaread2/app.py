@@ -30,6 +30,7 @@ from . import DISPLAY_NAME, NAME
 from .io import EXTRACT_DIR, MPath
 from .utils import (
     catch_log_exceptions,
+    ellide,
     is_supported_archive,
     is_web_image,
     log,
@@ -71,6 +72,7 @@ class Page(ABC):
             "no_emoji": "&#xFE0E;",
             "os_sep": os.sep,
             "anki": difficulty.anki,
+            "ellide": ellide,
         })
 
     @property

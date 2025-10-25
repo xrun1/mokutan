@@ -26,6 +26,10 @@ class Point(NamedTuple):
     y: float
 
 
+def ellide(text: str, max_length: int) -> str:
+    return text[:max_length] + "…" if len(text) > max_length else text
+
+
 def get_sorted_dir[T: Path](folder: T) -> list[T]:
     return natsorted(folder.iterdir(), key=lambda p: p.name)
 

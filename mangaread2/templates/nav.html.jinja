@@ -99,8 +99,9 @@
                         <input type=checkbox name=keep_going value=1>
                         Scan next folders too
                         (<a
+                            title="..{{os_sep}}{{next_chapter.name}}"
                             href="{{next_chapter.url(sort=sort)}}"
-                        >..{{os_sep}}{{next_chapter.name}}
+                        >..{{os_sep}}{{ellide(next_chapter.name, 30)}}
                         </a> and further)
                     </label>
                 {% endif %}
