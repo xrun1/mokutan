@@ -193,6 +193,10 @@ class MPath(Path):
         return not pause_queue and bool(OCR_QUEUE) and OCR_QUEUE[0] == self
 
     @property
+    def ocr_queued(self) -> bool:
+        return not pause_queue and self in OCR_QUEUE and OCR_QUEUE[0] != self
+
+    @property
     def ocr_done(self) -> bool:
         done, total = self.ocr_progress
         return 0 < done >= total

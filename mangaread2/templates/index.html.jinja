@@ -26,6 +26,9 @@
                 {% endif %}
                 {% set icon = "🗏 " %}
                 {% if path.ocr_running %} {% set icon = "⏵ " %} {% endif %}
+                {% if path.ocr_queued %}
+                    {% set icon = "⏳" ~ no_emoji ~ " " %}
+                {% endif %}
                 {% if path.ocr_paused %} {% set icon = "⏸ " %} {% endif %}
                 <span class=folder-status>
                     <span title="{{prog_txt}} pages OCR'ed">
