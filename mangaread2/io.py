@@ -342,7 +342,7 @@ class MPath(Path):
 
         if sort == "m":
             return ns(lambda e: e.stat().st_mtime)
-        if sort == "p":
+        if sort == "l":
             return ns(lambda e: len(e.images))
         if sort == "d":
             return ns(lambda e: e.difficulty.score or math.inf)

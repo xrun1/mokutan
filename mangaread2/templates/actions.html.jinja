@@ -1,31 +1,16 @@
-{% macro check(v) -%}{{"checked" if sort == v else ""}}{%- endmacro %}
 <details open>
     <summary>Sort folders by</summary>
     <form action="">
-        <label>
-            <input type=radio name=sort value="" {{check("")}}>
-            Name
-        </label>
-        <label>
-            <input type=radio name=sort value=m {{check("m")}}>
-            Date modified
-        </label>
-        <label>
-            <input type=radio name=sort value=p {{check("p")}}>
-            Page count
-        </label>
-        <label>
-            <input type=radio name=sort value=d {{check("d")}}>
-            Difficulty
-        </label>
-        <label>
-            <input type=radio name=sort value=a {{check("a")}}>
-            Anki learned %
-        </label>
-        <label>
-            <input type=radio name=sort value=r {{check("r")}}>
-            Date read
-        </label>
+        {% macro radio(l, v) -%}
+            {% set c = "checked" if sort == v else "" %}
+            <label><input type=radio name=sort value={{v}} {{c}}>{{l}}</label>
+        {%- endmacro %}
+        {{radio("Name", "")}}
+        {{radio("Date modified", "m")}}
+        {{radio("Date read", "r")}}
+        {{radio("Length", "l")}}
+        {{radio("Difficulty", "d")}}
+        {{radio("Anki learned%", "a")}}
         <button type=submit>Set</button>
     </form>
 
