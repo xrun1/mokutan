@@ -152,15 +152,18 @@ class Anki:
         }, ensure_ascii=False, indent=4), encoding="utf-8")
         return self
 
+    async def safe_load(self) -> Self:
+        try:
+            await self.load()
+        except httpx.ConnectError:
+            log.info("AnkiConnect API at %r not reachable", self.api)
+        except (httpx.HTTPError, AnkiError) as e:
+            log.warning("AnkiConnect API: %r", e)
+        return self
+
     async def keep_updated(self, interval: float = 600) -> None:
         while True:
-            try:
-                await self.load()
-            except httpx.ConnectError:
-                log.info("AnkiConnect API at %s not reachable", self.api)
-            except (httpx.HTTPError, AnkiError) as e:
-                log.warning("AnkiConnect API: %s", e)
-
+            await self.safe_load()
             await asyncio.sleep(interval)
 
     async def add_filter(

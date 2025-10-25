@@ -112,7 +112,7 @@ class Jobs(Page):
 @asynccontextmanager
 async def life(_app: FastAPI):
     difficulty.load_dict_data()
-    await difficulty.anki.load()
+    await difficulty.anki.safe_load()
     tasks = [asyncio.create_task(difficulty.anki.keep_updated())]
     tasks += [
         asyncio.create_task(asyncio.to_thread(catch_log_exceptions(f), EXIT))
