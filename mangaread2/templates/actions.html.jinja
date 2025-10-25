@@ -100,7 +100,9 @@
     {% for filter in anki.filters %}
         <form class="anki-filter-row" action="/anki/filter/del">
             <label>Deck:
-                <select disabled><option>{{filter[0]}}</option></select>
+                <select disabled><option>
+                    {{"Any" if filter[0] == "*" else filter[0]}}
+                </option></select>
             </label>
             <label>Note Type:
                 <select disabled><option>{{filter[1]}}</option></select>
