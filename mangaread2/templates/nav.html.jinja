@@ -83,15 +83,21 @@
         <summary>OCR</summary>
 
         {% if path.ocr_running %}
-            <div class=progress>⏵ {{path.ocr_progress_text}}</div>
+            <div class=progress title="In progress">
+                ⏵ {{path.ocr_progress_text}}
+            </div>
         {% elif path.ocr_paused %}
-            <div class=progress>⏸ {{path.ocr_progress_text}}</div>
+            <div class=progress title="All OCR jobs are paused">
+                ⏸ {{path.ocr_progress_text}}
+            </div>
         {% elif path.ocr_queued %}
-            <div class=progress>
+            <div class=progress title="Waiting for other jobs to finish">
                 ⏳{{no_emoji}} {{path.ocr_progress_text}}
             </div>
         {% elif path.ocr_done %}
-            <div class=progress>✔ {{path.ocr_progress_text}}</div>
+            <div class=progress title="OCR done">
+                ✔ {{path.ocr_progress_text}}
+            </div>
         {% endif %}
 
         <form action="/ocr/start{{path.url()}}">
