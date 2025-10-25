@@ -1,0 +1,32 @@
+<h4>
+    <a href="#{{img.as_anchor}}">{{img.name}}</a>
+    {% if index1 > progress[0] %}
+        <a
+            href="{{force_refresh_url}}#{{img.as_anchor}}"
+            title="OCR in progress, click to refresh"
+        >⟳</a>
+    {% endif %}
+</h4>
+
+<div class=page>
+    <img id="{{img.as_anchor}}" src="{{img.url()}}" loading=lazy>
+
+    {% for box in path.ocr_boxes(img) %}
+        <pre style="
+            left: {{box.x * 100}}%;
+            top: {{box.y * 100}}%;
+            min-width: {{box.w * 100}}%;
+            max-width: calc({{100 - box.x * 100}}% - 2rem);
+            min-height: {{box.h * 100}}%;
+            font-size: min(
+                {{box.font_size}}px,
+                {{box.font_size * 100 / box.image_w}}vw
+            );
+            {% if box.vertical %}
+                writing-mode: vertical-rl;
+            {% endif %}
+        ">
+            {{"\n".join(box.lines)}}
+        </pre>
+    {% endfor %}
+</div>
