@@ -203,7 +203,7 @@ class Anki:
         return cls()
 
 
-anki = Anki.restore_saved()
+ANKI = Anki.restore_saved()
 
 
 @dataclass(slots=True)
@@ -272,11 +272,11 @@ class Difficulty:
                 1000
             )
 
-            if (iv := anki.intervals.get(t.feature.orthBase)):
+            if (iv := ANKI.intervals.get(t.feature.orthBase)):
                 nonlocal anki_bonus
                 intervals.append(iv)
                 new_base = 10_000
-                new_base -= new_base * (iv / anki.MATURE_THRESHOLD)
+                new_base -= new_base * (iv / ANKI.MATURE_THRESHOLD)
                 new_base = max(new_base, 0)
                 anki_bonus += base - new_base
                 base = new_base
@@ -299,7 +299,7 @@ class Difficulty:
             terms_per_page=avg_terms_per_page,
             anki_learned=len(intervals),
             anki_mature=len([
-                iv for iv in intervals if iv >= anki.MATURE_THRESHOLD
+                iv for iv in intervals if iv >= ANKI.MATURE_THRESHOLD
             ]),
             anki_score_decrease=adjust(anki_bonus),
         )
@@ -393,9 +393,10 @@ def script_difficulty(word: str) -> float:
 
 @anki_router.get("/load")
 async def anki_load(api: str, key: str = "", referer: str = "/") -> Response:
-    global anki  # noqa: PLW0603
     try:
-        anki = await Anki(URL(api), key).load()
+        ANKI.api = URL(api)
+        ANKI.key = key
+        await ANKI.load()
     except AnkiPermissionError as e:
         return Response(str(e), status.HTTP_403_FORBIDDEN)
     return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
@@ -405,11 +406,11 @@ async def anki_load(api: str, key: str = "", referer: str = "/") -> Response:
 async def anki_add_filter(
     field: str, note_type: str = "*", deck: str = "*", referer: str = "/",
 ) -> Response:
-    await anki.add_filter(field, note_type, deck)
+    await ANKI.add_filter(field, note_type, deck)
     return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
 
 
 @anki_router.get("/filter/del")
 async def anki_delete_filter(index: int, referer: str) -> Response:
-    await anki.delete_filter(index)
+    await ANKI.delete_filter(index)
     return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)

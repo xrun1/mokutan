@@ -71,7 +71,7 @@ class Page(ABC):
             "DISPLAY_NAME": DISPLAY_NAME,
             "no_emoji": "&#xFE0E;",
             "os_sep": os.sep,
-            "anki": difficulty.anki,
+            "anki": difficulty.ANKI,
             "ellide": ellide,
         })
 
@@ -114,8 +114,8 @@ class Jobs(Page):
 @asynccontextmanager
 async def life(_app: FastAPI):
     difficulty.load_dict_data()
-    await difficulty.anki.safe_load()
-    tasks = [asyncio.create_task(difficulty.anki.keep_updated())]
+    await difficulty.ANKI.safe_load()
+    tasks = [asyncio.create_task(difficulty.ANKI.keep_updated())]
     tasks += [
         asyncio.create_task(asyncio.to_thread(catch_log_exceptions(f), EXIT))
         for f in (io.queue_loop, io.trim_archive_cache)
