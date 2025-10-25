@@ -99,8 +99,7 @@
                 ✔ {{path.ocr_progress_text}}
             </span>
         {% endif %}
-
-        <a href="/jobs#{{path.as_anchor}}">Queue</a>
+        <a href="/jobs#{{path.as_anchor}}">Queue ({{queue_count}})</a>
 
         <form action="/ocr/start{{path.url()}}">
             <span {{"" if path.ocr_can_begin else "disabled"}}>

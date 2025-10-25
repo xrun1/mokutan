@@ -26,7 +26,7 @@ from natsort import natsorted
 from mangaread2 import difficulty, io
 
 from . import DISPLAY_NAME, NAME
-from .io import EXTRACT_DIR, MPath
+from .io import EXTRACT_DIR, OCR_QUEUE, MPath
 from .utils import (
     catch_log_exceptions,
     ellide,
@@ -71,6 +71,7 @@ class Page(ABC):
             "os_sep": os.sep,
             "anki": difficulty.ANKI,
             "ellide": ellide,
+            "queue_count": len(OCR_QUEUE),
         })
 
     @property
