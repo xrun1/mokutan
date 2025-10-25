@@ -110,6 +110,8 @@
                 <span class=progress>⏵ {{path.ocr_progress_text}}</span>&emsp;
             {% elif path.ocr_paused %}
                 <span class=progress>⏸ {{path.ocr_progress_text}}</span>&emsp;
+            {% elif path.ocr_done %}
+                <span class=progress>✔ {{path.ocr_progress_text}}</span>&emsp;
             {% endif %}
 
             <a href="/jobs#{{path.as_anchor}}">Queue</a>
