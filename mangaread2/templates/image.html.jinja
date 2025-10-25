@@ -15,9 +15,6 @@
         <pre style="
             left: {{box.x * 100}}%;
             top: {{box.y * 100}}%;
-            min-width: {{box.w * 100}}%;
-            max-width: calc({{100 - box.x * 100}}% - 2rem);
-            min-height: {{box.h * 100}}%;
             font-size: min(
                 {{box.font_size}}px,
                 {{box.font_size * 100 / box.image_w}}vw
