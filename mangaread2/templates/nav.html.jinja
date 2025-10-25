@@ -196,7 +196,7 @@
             </form>
         {% endif %}
 
-        {% if anki.filters or anki.learned_count %}
+        {% if anki.loaded and (anki.filters or anki.learned_count) %}
             <p class=anki-learned-count>
                 ✔ {{anki.learned|length}} learned words parsed
                 ({{anki.young|length}} young, {{anki.mature|length}} mature)
