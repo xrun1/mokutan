@@ -290,8 +290,8 @@ class Difficulty:
 
         avg_terms_per_page = len(terms) / len(ocr_data["pages"])
 
-        def adjust(score_like: float) -> float:
-            return score_like / len(unique_vocab) * avg_terms_per_page / 20_000
+        def adjust(s: float) -> float:
+            return s / len(unique_vocab) * avg_terms_per_page ** 1.1 / 25_000
 
         diff = cls(
             score=adjust(sum(get_score(t) for t in unique_vocab.values())),
