@@ -264,7 +264,7 @@ class Difficulty:
         intervals: list[timedelta] = []
         anki_bonus = 0
 
-        def get_score(t: fugashi.fugashi.UnidicNode) -> float:
+        def get_score(t: fugashi.fugashi.Node) -> float:
             base = 50_000 + (
                 jp_freqs.get((t.feature.lemma, t.feature.orthBase)) or
                 jp_freqs.get(t.feature.orthBase) or
