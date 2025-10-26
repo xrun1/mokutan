@@ -84,8 +84,6 @@ h4 a {
     line-height: 1.1em;
     color: black;
     margin: 0;
-    border: 1rem solid transparent;
-    translate: -1rem -1rem;
 
     & .anki-mature {
         color: forestgreen;
@@ -103,6 +101,7 @@ h4 a {
 .ocr-box-bg {
     z-index: 100;
     background: white;
+    outline: solid white;
     color: transparent;
     user-select: none;
     pointer-events: none;

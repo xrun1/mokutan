@@ -15,13 +15,22 @@
         <div class=ocr-group>
         {% for box in group %}
             {% for kind in ["bg", "fg"] %}
+                {% set font_size = "min(" ~
+                    box.font_size ~ "px," ~
+                    box.font_size * 100 / box.image_w ~ "vw" ~
+                ")" %}
                 <pre class=ocr-box-{{kind}} style="
                     left: {{box.x * 100}}%;
                     top: {{box.y * 100}}%;
-                    font-size: min(
-                        {{box.font_size}}px,
-                        {{box.font_size * 100 / box.image_w}}vw
-                    );
+                    {% if kind == 'fg' %}
+                        width: {{box.w * 100}}%;
+                        height: {{box.h * 100}}%;
+                    {% else %}
+                        min-width: {{box.w * 100}}%;
+                        min-height: {{box.h * 100}}%;
+                        outline-width: calc({{font_size}} / 3);
+                    {% endif %}
+                    font-size: {{font_size}};
                     {% if box.vertical %}
                         writing-mode: vertical-rl;
                         {# Affects normalized single width ?/!/etc #}

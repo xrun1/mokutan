@@ -7,6 +7,7 @@ import multiprocessing
 import os
 import shutil
 import time
+import unicodedata
 from collections import defaultdict, deque
 from contextlib import suppress
 from dataclasses import dataclass, field
@@ -14,7 +15,6 @@ from datetime import UTC, datetime, timedelta
 from itertools import starmap
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
-import unicodedata
 from uuid import uuid4
 from zipfile import ZipFile
 
