@@ -103,7 +103,6 @@ class Anki:
         return data["result"]
 
     async def load(self) -> Self:
-        self.loaded = False
         result = await self.do("requestPermission")
 
         if result.get("permission") != "granted":
@@ -168,8 +167,8 @@ class Anki:
 
     async def keep_updated(self, interval: float = 600) -> None:
         while True:
-            await self.safe_load()
             await asyncio.sleep(interval)
+            await self.safe_load()
 
     async def add_filter(
         self, field: str, note_type: str = "*", deck: str = "*",
