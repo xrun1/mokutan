@@ -5,6 +5,7 @@ import json
 import math
 import multiprocessing
 import os
+import re
 import shutil
 import time
 import unicodedata
@@ -49,6 +50,8 @@ IGNORED_ARCHIVES: set[Path] = set()
 LAST_ARCHIVE_ACCESSES: dict[Path, datetime] = {}
 LOCKS: defaultdict[Path, asyncio.Lock] = defaultdict(asyncio.Lock)
 pause_queue: bool = False
+
+FULLWIDTH_DOTS_RE = re.compile(r"(．+)")
 
 
 @dataclass(slots=True)
@@ -325,7 +328,14 @@ class MPath(Path):
                     # as they're reponsible for most text box overflows
                     line = unicodedata.normalize("NFKC", line)
 
-                box.lines.append("".join(ANKI.html_mark_known(line)))
+                line = "".join(ANKI.html_mark_known(line))
+
+                if box.vertical:
+                    line = FULLWIDTH_DOTS_RE.sub(
+                        r"<span class=full-dots>\1</span>", line,
+                    )
+
+                box.lines.append(line)
                 box.x = min(box.x, start.x)
                 box.y = min(box.y, start.y)
                 box.w = max(box.w, end.x - box.x)
