@@ -33,8 +33,6 @@
                     font-size: {{font_size}};
                     {% if box.vertical %}
                         writing-mode: vertical-rl;
-                        {# Affects normalized single width ?/!/etc #}
-                        text-orientation: upright;
                     {% endif %}
                 ">
                     {{"\n".join(box.lines)}}
