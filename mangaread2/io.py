@@ -365,8 +365,7 @@ class MPath(Path):
         if sort == "d":
             return ns(lambda e: e.difficulty.score or math.inf)
         if sort == "x":
-            return ns(lambda e:
-                len(e.images) * (e.difficulty.score or math.inf) ** 1.2)
+            return ns(lambda e: sum(e.difficulty.page_scores))
         if sort == "a":
             return ns(lambda e: e.difficulty.anki_learned_percent, invert=True)
         if sort == "r":

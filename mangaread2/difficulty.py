@@ -30,6 +30,8 @@ from .utils import log
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from fugashi.fugashi import Node as FugashiNode
+
 jp_parser: fugashi.Tagger | None = None  # dict may not be downloaded yet
 kanji_parser: Cihai | None = None  # same for DB
 jp_freqs: dict[str | tuple[str, str], int] = {}
@@ -132,7 +134,10 @@ class Anki:
                 iv = card["interval"]
 
                 for part in jp_parser(card["fields"][card_field]["value"]):
-                    k = part.feature.orthBase
+                    if not part.feature.orthBase:
+                        continue
+
+                    k = str(part.feature.orthBase)
                     v = timedelta(seconds=iv) if iv < 0 else timedelta(days=iv)
 
                     if k not in intervals or intervals[k] < v:
@@ -210,8 +215,9 @@ ANKI = Anki.restore_saved()
 class Difficulty:
     cache: ClassVar[dict[Path, tuple[float, int, Self]]] = {}
 
-    score: float = 0
+    page_scores: list[float] = field(default_factory=list)
     unique_terms: int = 0
+    page_term_counts: list[int] = field(default_factory=list)
     terms_per_page: float = 0
     anki_learned: int = 0
     anki_mature: int = 0
@@ -219,6 +225,10 @@ class Difficulty:
 
     def __bool__(self) -> bool:
         return bool(self.score)
+
+    @property
+    def score(self) -> float:
+        return sum(self.page_scores) / (len(self.page_scores) or 1)
 
     @property
     def raw_score(self) -> float:
@@ -249,59 +259,67 @@ class Difficulty:
                 return diff
 
         ocr_data = json.load(ocr_json.open(encoding="utf-8"))
-        text = "\n\n".join(
-            "\n".join(box["lines"])
+        pages_text = [
+            "\n\n".join("\n".join(box["lines"]) for box in page["blocks"])
             for page in ocr_data["pages"]
-            for box in page["blocks"]
-        )
-        if not text.strip():
+        ]
+
+        if not "".join(pages_text).strip():
             cls.cache[ocr_json] = (fs_stats.st_mtime, fs_stats.st_size, cls())
             return cls.cache[ocr_json][2]
 
-        terms = jp_parser(text)
-        unique_vocab = {t.feature.orthBase: t for t in terms}
-        counts = Counter(t.feature.orthBase for t in terms)
-        intervals: list[timedelta] = []
-        anki_bonus = 0
+        pages = [jp_parser(p) for p in pages_text]
+        dedup_counts = Counter(
+            term.feature.orthBase for page in pages for term in page
+            if term.feature.orthBase
+        )
+        intervals: dict[str, timedelta] = {}
+        anki_bonuses: list[float] = []
 
-        def get_score(t: fugashi.fugashi.Node) -> float:
-            base = 50_000 + (
-                jp_freqs.get((t.feature.lemma, t.feature.orthBase)) or
-                jp_freqs.get(t.feature.orthBase) or
-                jp_freqs.get(t.feature.lemma) or
-                1000
-            )
+        def get_score(term: FugashiNode, unique_vocab: set[str]) -> float:
+            feat = term.feature
 
-            if (iv := ANKI.intervals.get(t.feature.orthBase)):
-                nonlocal anki_bonus
-                intervals.append(iv)
-                new_base = 10_000
-                new_base -= new_base * (iv / ANKI.MATURE_THRESHOLD)
-                new_base = max(new_base, 0)
-                anki_bonus += base - new_base
-                base = new_base
+            def get(consider_rarity: bool = True) -> float:
+                return (
+                    (20_000 + int(consider_rarity) * min(20_000, (
+                        jp_freqs.get((feat.lemma, feat.orthBase)) or
+                        jp_freqs.get(feat.orthBase) or
+                        jp_freqs.get(feat.lemma) or
+                        math.inf
+                    )))
+                    * NON_CORE_POS1_DIFFICULTY_FACTORS.get(feat.pos1, 1)
+                    * script_difficulty(term.surface)
+                    / max(1, dedup_counts[feat.orthBase])
+                    * len(unique_vocab) ** 1.1
+                ) / 100_000
 
-            return (
-                base
-                * NON_CORE_POS1_DIFFICULTY_FACTORS.get(t.feature.pos1, 1)
-                * script_difficulty(t.surface)
-                / max(1, counts[t.feature.orthBase])
-            )
+            score = get()
 
-        avg_terms_per_page = len(terms) / len(ocr_data["pages"])
+            if (iv := ANKI.intervals.get(feat.orthBase)):
+                intervals[feat.orthBase] = iv
+                old_score = score
+                score = get(consider_rarity=False)
+                score -= score * 0.9 * min(1, iv / ANKI.MATURE_THRESHOLD)
+                anki_bonuses.append(old_score - score)
 
-        def adjust(s: float) -> float:
-            return s / len(unique_vocab) * avg_terms_per_page ** 1.1 / 25_000
+            return score
+
+        def page_score(page: list[FugashiNode]) -> float:
+            unique_vocab = {
+                str(t.feature.orthBase) for t in page if t.feature.orthBase
+            }
+            return sum(get_score(term, unique_vocab) for term in page)
 
         diff = cls(
-            score=adjust(sum(get_score(t) for t in unique_vocab.values())),
-            unique_terms=len(unique_vocab),
-            terms_per_page=avg_terms_per_page,
+            page_scores=[page_score(p) for p in pages],
+            unique_terms=len(dedup_counts),
+            page_term_counts=(ptc := [len(p) for p in pages]),
+            terms_per_page=sum(ptc) / len(ptc),
             anki_learned=len(intervals),
             anki_mature=len([
-                iv for iv in intervals if iv >= ANKI.MATURE_THRESHOLD
+                iv for iv in intervals.values() if iv >= ANKI.MATURE_THRESHOLD
             ]),
-            anki_score_decrease=adjust(anki_bonus),
+            anki_score_decrease=sum(anki_bonuses) / len(pages),
         )
         cls.cache[ocr_json] = (fs_stats.st_mtime, fs_stats.st_size, diff)
         return diff
