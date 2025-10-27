@@ -18,7 +18,10 @@ html {
 }
 
 body {
-    background: var(--backgrounds);
+    background-image: url("./fog.png"), url("./stars.png");
+    background-size: cover, auto;
+    background-color: var(--backgrounds);
+    background-attachment: fixed;
     color: var(--text);
     text-align: center;
     font-family: var(--sans);
@@ -107,6 +110,7 @@ tbody tr:nth-child(odd) {
 }
 
 nav {
+    background: var(--backgrounds);
     display: flex;
     align-items: center;
     width: 100%;
@@ -365,7 +369,9 @@ figcaption {
     }
 
     &:has(span[title^="Read the"]) {
-        opacity: 0.5;
+        & .file-name, .folder-status {
+            opacity: 0.6;
+        }
     }
 
     & .file-name {
@@ -402,6 +408,7 @@ figcaption {
         min-height: var(--height);
         object-fit: contain;
         border: 1px solid var(--borders);
+        background: var(--backgrounds);
 
         &:after {
             text-decoration: none;
