@@ -23,6 +23,7 @@ import wakepy
 from fastapi.datastructures import URL
 from fastapi.responses import RedirectResponse
 from natsort import natsorted
+from PIL import Image
 
 from mangaread2.difficulty import ANKI, Difficulty
 
@@ -124,6 +125,10 @@ class MPath(Path):
         return type(self)(path) if Path(path).exists() else self
 
     @property
+    def is_nt_drive(self) -> bool:
+        return os.name == "nt" and self.is_absolute() and len(self.parts) == 1
+
+    @property
     def as_anchor(self) -> str:
         return self.stem.replace(" ", "-")
 
@@ -223,6 +228,13 @@ class MPath(Path):
             if sec < 60 * 60 * 24 * 31 * 365:
                 return (date, delta, f"{int(sec / 60 / 60 / 24 / 31)}mo")
             return (date, delta, f"{int(sec / 60 / 60 / 24 / 31 / 365)}y")
+        return None
+
+    @property
+    def dimensions(self) -> tuple[int, int] | None:
+        if is_web_image(self):
+            with Image.open(self) as img:
+                return img.size
         return None
 
     def url(self, **params: Any) -> URL:
@@ -360,7 +372,7 @@ class MPath(Path):
 
         if sort == "m":
             return ns(lambda e: e.stat().st_mtime)
-        if sort == "l":
+        if sort == "p":
             return ns(lambda e: len(e.images))
         if sort == "d":
             return ns(lambda e: e.difficulty.score or math.inf)
@@ -374,7 +386,7 @@ class MPath(Path):
         return ns(lambda _: -1)
 
     def _sibling_chapters(self, sort: str = "") -> tuple[list[Self], int]:
-        if self.unextracted.parent is self:  # drive root
+        if self.unextracted.is_nt_drive:
             return ([], -1)
         chapters = self._sort(sort, (
             p for p in self.unextracted.parent.iterdir()
@@ -456,10 +468,10 @@ def trim_archive_cache(stop: Event) -> None:
 
 
 @router.get("/pause")
-async def toggle_pause_queue() -> Response:
+async def toggle_pause_queue(referer: str = "/") -> Response:
     global pause_queue  # noqa: PLW0603
     pause_queue = not pause_queue
-    return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/start/{chapter:path}")
@@ -480,7 +492,9 @@ async def start_ocr(
 
 
 @router.get("/cancel/{chapter:path}")
-async def cancel_ocr(chapter: Path | str, recursive: bool = False) -> Response:
+async def cancel_ocr(
+    chapter: Path | str, recursive: bool = False, referer: str = "/",
+) -> Response:
     job = MPath(chapter).unextracted
     OCR_QUEUE.remove(job)
 
@@ -489,39 +503,49 @@ async def cancel_ocr(chapter: Path | str, recursive: bool = False) -> Response:
         OCR_QUEUE.clear()
         OCR_QUEUE.extend(j for j in queue if job not in j.parents)
 
-    return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/clear")
-async def cancel_all_ocr() -> Response:
+async def cancel_all_ocr(referer: str = "/") -> Response:
     OCR_QUEUE.clear()
-    return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/move/end/{chapter:path}")
-async def move_ocr_job_position_end(chapter: Path | str) -> Response:
-    return await move_ocr_job_position(chapter, len(OCR_QUEUE))
+async def move_ocr_job_position_end(
+    chapter: Path | str, referer: str = "/",
+) -> Response:
+    return await move_ocr_job_position(
+        chapter, len(OCR_QUEUE), referer,
+    )
 
 
 @router.get("/move/{to}/{chapter:path}")
-async def move_ocr_job_position(chapter: Path | str, to: int) -> Response:
+async def move_ocr_job_position(
+    chapter: Path | str, to: int, referer: str = "/",
+) -> Response:
     job = MPath(chapter).unextracted
     del OCR_QUEUE[OCR_QUEUE.index(job)]
     OCR_QUEUE.insert(to, job)
-    return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/shift/{by}/{chapter:path}")
-async def shift_ocr_job_position(chapter: Path | str, by: int) -> Response:
+async def shift_ocr_job_position(
+    chapter: Path | str, by: int, referer: str = "/",
+) -> Response:
     job = MPath(chapter).unextracted
     del OCR_QUEUE[index := OCR_QUEUE.index(job)]
     OCR_QUEUE.insert(index + by, job)
-    return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/edit")
-async def manual_edit_ocr_queue(content: str) -> Response:
+async def manual_edit_ocr_queue(
+    content: str, referer: str = "/",
+) -> Response:
     OCR_QUEUE.clear()
     jobs = (MPath(x).unextracted for x in content.splitlines())
     OCR_QUEUE.extend(j for j in jobs if j.exists())
-    return RedirectResponse(url="/jobs", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)

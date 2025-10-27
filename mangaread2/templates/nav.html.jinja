@@ -1,41 +1,72 @@
-{% set next_chapter = path.next_chapter(sort) %}
-<h2>
-    {% set parent = path.unextracted.parent %}
-    {% if parent == path %}
-        <a title="This PC" href="/">⭡</a>&#32;
-    {% else %}
-        <a
-            title=Parent
-            href="{{parent.url(sort=sort)}}#{{path.as_anchor}}"
-        >⭡</a>
-    {% endif %}
-    &ensp;
+{% set target = path.previous_chapter(sort) %}
+<a
+    class="previous-folder button accent"
+    title="Previous: {{target}}"
+    href="{{target.url(sort=sort) if target else ''}}"
+    {{"" if target else "disabled"}}
+>⭠</a>
 
-    {% if path.previous_chapter(sort) %}
-        <a
-            title=Previous
-            href="{{path.previous_chapter(sort).url(sort=sort)}}"
-        >⭠</a>&#32;
-    {% endif %}
+{% set target = path.next_chapter(sort) %}
+<a
+    class="next-folder button accent"
+    title="Next: {{target}}"
+    href="{{target.url(sort=sort) if target else ''}}"
+    {{"" if target else "disabled"}}
+>⭢</a>
 
+{% if path.unextracted.is_nt_drive %}
+    <a
+        class="parent-folder button accent"
+        title="Parent: This PC"
+        href="/"
+    >⭡</a>
+{% else %}
+    {% set target = path.unextracted.parent %}
+    <a
+        class="parent-folder button accent"
+        title="Parent: {{target}}""
+        href="{{target.url(sort=sort)}}#{{path.as_anchor}}"
+    >⭡</a>
+{% endif %}
+
+{% set tail = path.url() ~ "?referer=" ~ request.url %}
+{% if path.has_mark("read") %}
+    <a
+        class="toggle-read button accent"
+        title="Mark as unread"
+        href="/mark/unread{{tail}}"
+    >📖{{no_emoji}}<sup>✖</sup></a>
+{% else %}
+    <a
+        class="toggle-read button accent"
+        title="Mark as read"
+        href="/mark/read{{tail}}"
+    >📖{{no_emoji}}<sup>✔</sup></a>
+{% endif %}
+
+{% set title_tag = "h1" if side == "top" else "p" %}
+<{{title_tag}} class="folder-name" lang="und">
     {{path.name or path}}
+</{{title_tag}}>
 
-    {% if next_chapter %}
-        &#32;<a
-            title=Next
-            href="{{next_chapter.url(sort=sort)}}"
-        >⭢</a>
-    {% endif %}
+<button class="anki button" popovertarget="anki-popup-{{side}}">
+    Anki
+    <span class="accent">
+        {{anki.learned | length if anki.loaded else "✕"}}
+    </span>
+</button>
 
-    &ensp;
-    {% set tail = path.url() ~ "?referer=" ~ request.url %}
-    {% if path.has_mark("read") %}
-        <a title="Mark as unread" href="/mark/unread{{tail}}">
-            📖{{no_emoji}}<sup>✖</sup>
-        </a>
-    {% else %}
-        <a title="Mark as read" href="/mark/read{{tail}}">
-            📖{{no_emoji}}<sup>✔</sup>
-        </a>
-    {% endif %}
-</h2>
+<button class="ocr button" popovertarget="ocr-popup-{{side}}">
+    OCR
+    <span class="accent">
+        {{"⏸" if queue_paused else queue | length}}
+    </span>
+</button>
+
+<div id="anki-popup-{{side}}" class="anki" popover>
+    {% include "anki-popup.html.jinja "%}
+</div>
+
+<div id="ocr-popup-{{side}}" class="ocr" popover>
+    {% include "ocr-popup.html.jinja "%}
+</div>

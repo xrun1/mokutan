@@ -1,21 +1,26 @@
-<!DOCTYPE html><html>
-<head>
-    <title>This PC | {{DISPLAY_NAME}}</title>
+<!DOCTYPE html>
+<html lang=en>
+    <head>
+        <title>This PC | {{DISPLAY_NAME}}</title>
 
-    <meta charset=utf-8>
-    <meta name=viewport content="width=device-width">
-    <meta name=referrer content=strict-origin>
+        <meta charset=utf-8>
+        <meta name=viewport content="width=device-width">
+        <meta name=referrer content=strict-origin>
 
-    <link rel=stylesheet href=/style/main.css>
-</head>
+        <link rel=stylesheet href=/style/main.css>
+    </head>
+    <body id="drives-page">
+        <h1>This PC</h1>
 
-<body>
-    <div id=non-images>
-        {% for path in drives %}
-            <a href="{{path.url()}}">
-                <h4>{{path}}</h4>
-                <div class="no-thumb drive">🖴</div>
-            </a>
-        {% endfor %}
-    </div>
-</body></html>
+        <section id=files>
+            <h2>Drives</h2>
+            <ul>
+                {% for path in drives %}
+                    <li class="file-entry drive">
+                        {% include "file.html.jinja" %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    </body>
+</html>

@@ -1,0 +1,55 @@
+{% set href = path.url(sort=sort) %}
+
+<a id="{{path.as_anchor}}" href="{{href}}">
+    <img
+        class="file-thumbnail"
+        alt="{{'🖴' if path.is_nt_drive else '🗀' if path.is_dir() else '🗎'}}"
+        src="/thumbnail{{path.url()}}"
+        loading=lazy
+    >
+</a>
+
+<h3 class="file-name" lang="und">
+    <a href="{{href}}" tabindex="-1">{{path.name or path}}</a>
+</h3>
+
+{% set progress = path.ocr_progress %}
+{% set prog_txt = path.ocr_progress_text %}
+{% set prog_shown = prog_txt %}
+{% if progress[0] == progress[1] or not progress[0] %}
+    {% set prog_shown = progress[1] %}
+{% endif %}
+
+{% set icon = "🗏 " %}
+{% if path.ocr_running %} {% set icon = "⏵ " %} {% endif %}
+{% if path.ocr_queued %}
+    {% set icon = "⏳" ~ no_emoji ~ " " %}
+{% endif %}
+{% if path.ocr_paused %} {% set icon = "⏸ " %} {% endif %}
+
+<span class=folder-status>
+    <span title="{{prog_txt}} pages OCR'ed">
+        {{icon}}{{prog_shown}}
+    </span>
+
+    {% set d = path.difficulty %}
+    {% if d %}
+        <span title="
+Average words per page: {{d.terms_per_page | round(1)}}
+Unique words: {{d.unique_terms}}
+Learned in Anki: {{d.anki_learned}} ({{d.anki_learned_percent | int}}%)
+Mature: {{d.anki_mature}} ({{d.anki_mature_percent | int}}%)
+Raw difficulty: {{d.raw_score | int}}
+Anki decrease: {{d.anki_score_decrease | int}} ({{d.anki_score_decrease_percent | int}}%)
+        ">
+            🗲&hairsp;{{d.score | int}}
+        </span>
+    {% endif %}
+
+    {% set rd = path.read_date %}
+    {% if rd %}
+        <span title="{{rd[0].strftime('Read the %F at %T')}}">
+            ✔{{rd[2]}}
+        </span>
+    {% endif %}
+</span>

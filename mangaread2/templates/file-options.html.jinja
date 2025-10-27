@@ -1,0 +1,22 @@
+<section id="sort">
+    <h3>Sort:</h3>
+
+    {% macro option(name, value) -%}
+        {% set check = "checked" if sort == value else "" %}
+        <a href="?sort={{value}}" class="button {{check}}" value="{{value}}">
+            {{name}}{{"<span class=accent> ✔</span>" if check else ""}}
+        </a>
+    {%- endmacro %}
+
+    {{option("Name", "")}}
+    {{option("Date modified", "m")}}
+    {{option("Date read", "r")}}
+    {{option("Pages", "p")}}
+    {{option("Difficulty", "d")}}
+    {{option("Anki learned %", "a")}}
+    {{option("Length x difficulty", "x")}}
+
+    <p class=sort-ocr-warning>
+        Calculating difficulty and Anki statistics requires OCR
+    </p>
+</section>

@@ -1,0 +1,95 @@
+<h3>OCR</h3>
+
+{% if path.ocr_running %}
+    <span class=progress title="In progress">
+        ⏵ {{path.ocr_progress_text}}
+    </span>
+{% elif path.ocr_paused %}
+    <span class=progress title="All OCR jobs are paused">
+        ⏸ {{path.ocr_progress_text}}
+    </span>
+{% elif path.ocr_queued %}
+    <span class=progress title="Waiting for other jobs to finish">
+        ⏳{{no_emoji}} {{path.ocr_progress_text}}
+    </span>
+{% elif path.ocr_done %}
+    <span class=progress title="OCR done">
+        ✔ {{path.ocr_progress_text}}
+    </span>
+{% endif %}
+
+{% set disable= "" if path.ocr_can_begin else "disabled" %}
+<form action="/ocr/start{{path.url()}}" {{disable}}>
+    <input type=hidden name=sort value="{{sort}}">
+    <input type=hidden name=referer value="{{request.url}}">
+    {% set next = path.next_chapter(sort) %}
+    {% if next %}
+        <label>
+            <input type=checkbox name=keep_going value=1>
+            Scan next folders too
+            (<a
+                title="..{{os_sep}}{{next.name}}"
+                href="{{next.url(sort=sort)}}"
+            >..{{os_sep}}{{ellide(next.name, 30)}}
+            </a> and further)
+        </label>
+    {% endif %}
+    <label>
+        <input type=checkbox name=recursive value=1>
+        Recurse down subfolders
+    </label>
+    <label>
+        <input type=checkbox name=prioritize value=1>
+        Add to front of the queue
+    </label>
+    <button type=submit>Start</button>&emsp;
+</form>
+
+<h4>Queue</h4>
+{% set rf = "?referer=" ~ request.url %}
+<a href="{{force_refresh_url}}">⟳ Refresh</a>
+<a href="/ocr/pause{{rf}}">{{"︎︎︎⏵ Resume" if paused else "⏸ Pause"}}</a>
+<a href="/ocr/clear{{rf}}">✖ Cancel all</a>
+
+<table>
+    <thead>
+        <tr>
+            <th>Folder</th>
+            <th></th>
+            <th>Progress</th>
+            <th>Actions</th>
+        </tr>
+    </thead><tbody>
+    {% for path in queue.copy() %}
+        <tr>
+            <td>
+                <a id="{{path.as_anchor}}" href="{{path.url()}}">
+                    {{path}}
+                </a>
+            </td>
+            <td>
+                {% if path.ocr_paused %}
+                    ⏸
+                {% elif path.ocr_running %}
+                    ⏵︎
+                {% endif %}
+            </td>
+            <td>{{path.ocr_progress_text}}</td>
+            <td class=actions>
+                <a href="/ocr/shift/-1/{{path}}{{rf}}" title="Move up">🠋</a>
+                <a href="/ocr/shift/+1/{{path}}{{rf}}" title="Move down">🠉</a>
+                <a href="/ocr/move/0/{{path}}{{rf}}" title="Process now">⭱</a>
+                <a href="/ocr/move/end/{{path}}{{rf}}" title="Make last">⭳</a>
+                <a href="/ocr/cancel/{{path}}{{rf}}" title="Cancel">✖</a>
+                <a
+                    href="/ocr/cancel/{{path}}{{rf}}&recursive=1"
+                    title="Cancel this and all subfolders recursively"
+                >〷</a>
+            </td>
+        </tr>
+    {% endfor %}
+</tbody></table>
+
+{% if not queue %}
+    <p id=empty-queue>Nothing to do</p>
+{% endif %}

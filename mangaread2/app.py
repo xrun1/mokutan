@@ -71,7 +71,8 @@ class Page(ABC):
             "os_sep": os.sep,
             "anki": difficulty.ANKI,
             "ellide": ellide,
-            "queue_count": len(OCR_QUEUE),
+            "queue": io.OCR_QUEUE,
+            "queue_paused": io.pause_queue,
         })
 
     @property
@@ -95,19 +96,6 @@ class WindowsDrives(Page):
     @property
     def drives(self) -> list[MPath]:
         return list(map(MPath, os.listdrives()))
-
-
-@dataclass(slots=True)
-class Jobs(Page):
-    template: ClassVar[str] = "jobs.html.jinja"
-
-    @property
-    def queue(self) -> Sequence[io.MPath]:
-        return io.OCR_QUEUE
-
-    @property
-    def paused(self) -> bool:
-        return io.pause_queue
 
 
 @asynccontextmanager
@@ -136,14 +124,12 @@ app.include_router(difficulty.anki_router)
 list(map(mount, ["style"]))
 
 
-@app.get("/jobs")
-async def jobs(request: Request) -> Response:
-    return Jobs(request).response
-
-
 @app.get("/thumbnail/{path:path}")
 async def thumbnail(path: Path | str, recurse: int = 2) -> Response:
     path = MPath(path)
+
+    if path.is_nt_drive:
+        return Response(status_code=404)
 
     if is_web_image(path):
         return RedirectResponse(path.url(), status.HTTP_303_SEE_OTHER)

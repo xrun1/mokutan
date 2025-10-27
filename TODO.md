@@ -1,1 +1,3 @@
 - Improve design
+- Show corresponding row from jobs page on OCRing browse page?
+- image width instead of max-width to let zoom past?

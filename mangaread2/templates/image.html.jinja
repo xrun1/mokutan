@@ -1,19 +1,29 @@
-<h4>
-    <a href="#{{img.as_anchor}}">{{img.name}}</a>
+<figcaption class="image-entry-info">
+    <h3 lang="und">
+        <a href="#{{img.as_anchor}}">{{img.name}}</a>
+    </h3>
     {% if index1 > progress[0] %}
         <a
             href="{{force_refresh_url}}#{{img.as_anchor}}"
             title="OCR in progress, click to refresh"
         >⟳</a>
     {% endif %}
-</h4>
+</figcaption>
 
-<div class=page>
-    <img id="{{img.as_anchor}}" src="{{img.url()}}" loading=lazy>
+<div class="image-entry-wrapper">
+    {% set dim = img.dimensions %}
+    <img
+        id="{{img.as_anchor}}"
+        src="{{img.url()}}"
+        loading=lazy
+        width="{{dim[0] if dim else ''}}"
+        height="{{dim[1] if dim else ''}}"
+    >
 
     {% for group in path.ocr_box_groups(img) %}
-        <div class=ocr-group>
+        <div class=ocr-group lang="ja">
         {% for box in group %}
+            {% set size = [box.image_w, box.image_h] %}
             {% for kind in ["bg", "fg"] %}
                 {% set font_size = "min(" ~
                     box.font_size ~ "px," ~

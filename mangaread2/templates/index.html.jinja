@@ -1,35 +1,45 @@
-<!DOCTYPE html><html>
-<head>
-    <title>{{path.name or path}} | {{DISPLAY_NAME}}</title>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>{{path.name or path}} | {{DISPLAY_NAME}}</title>
 
-    <meta charset=utf-8>
-    <meta name=viewport content="width=device-width">
-    <meta name=referrer content=strict-origin>
+        <meta charset=utf-8>
+        <meta name=viewport content="width=device-width">
+        <meta name=referrer content=strict-origin>
 
-    <link rel=stylesheet href=/style/main.css>
-</head>
+        <link rel=stylesheet href=/style/main.css>
+    </head>
+    <body id="folder-page">
+        {% set progress = path.ocr_progress %}
 
-<body>
-    {% set progress = path.ocr_progress %}
+        <nav>
+            {% set side = "top"%}
+            {% include "nav.html.jinja" %}
+        </nav>
 
-    <nav>
-        {% include "nav.html.jinja" %}
-    </nav>
+        <section id=files>
+            <h2>Files</h2>
+            {% include "file-options.html.jinja" %}
+            <ul>
+                {% for path in path.non_images(sort) %}
+                    <li class="file-entry">{% include "file.html.jinja" %}</li>
+                {% endfor %}
+            </ul>
+        </section>
 
-    <div id="actions">
-        {% include "actions.html.jinja" %}
-    </div>
+        <section id="images">
+            <h2>Images</h2>
+            {% for img in path.images %}
+                <figure class="image-entry">
+                    {% set index1 = loop.index %}
+                    {% include "image.html.jinja" %}
+                </figure>
+            {% endfor %}
+        </section>
 
-    <div id=non-images>
-        {% for path in path.non_images(sort) %}
-            {% include "non-image.html.jinja" %}
-        {% endfor %}
-    </div>
-
-    {% for img in path.images %}
-        {% set index1 = loop.index %}
-        {% include "image.html.jinja" %}
-    {% endfor %}
-
-    {% include "nav.html.jinja" %}
-</body></html>
+        <nav class="bottom">
+            {% set side = "bottom"%}
+            {% include "nav.html.jinja" %}
+        </nav>
+    </body>
+</html>

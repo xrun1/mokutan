@@ -521,6 +521,7 @@ dependencies = [
     { name = "jinja2" },
     { name = "mokuro" },
     { name = "natsort" },
+    { name = "pillow" },
     { name = "uvicorn" },
     { name = "wakepy" },
 ]
@@ -548,6 +549,7 @@ requires-dist = [
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "mokuro", specifier = ">=0.2.2" },
     { name = "natsort", specifier = ">=8.4.0" },
+    { name = "pillow", specifier = ">=11.3.0" },
     { name = "uvicorn", specifier = ">=0.34.2" },
     { name = "wakepy", specifier = ">=0.10.2.post1" },
 ]
