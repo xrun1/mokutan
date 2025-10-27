@@ -490,8 +490,12 @@ async def start_ocr(
     job = MPath(chapter).unextracted
     jobs = [job, *job.next_chapters(sort)] if keep_going else [job]
     jobs = flatten(f.glob("**") if recursive else [f] for f in jobs)
-    jobs = [f for f in jobs if is_supported_archive(f) or f.has_images]
-    jobs = [f for f in jobs if not f.ocr_json_file.exists()]
+    jobs = [
+        f for f in jobs
+        if f.name != "_ocr" and
+        (is_supported_archive(f) or f.has_images) and
+        not f.ocr_json_file.exists()
+    ]
     (OCR_QUEUE.extendleft if prioritize else OCR_QUEUE.extend)(jobs)
     return RedirectResponse(url=referer, status_code=status.HTTP_303_SEE_OTHER)
 
