@@ -503,12 +503,17 @@ async def cancel_ocr(
         OCR_QUEUE.clear()
         OCR_QUEUE.extend(j for j in queue if job not in j.parents)
 
+    if not OCR_QUEUE and pause_queue:
+        await toggle_pause_queue()
+
     return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/clear")
 async def cancel_all_ocr(referer: str = "/") -> Response:
     OCR_QUEUE.clear()
+    if pause_queue:
+        await toggle_pause_queue()
     return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
 
 
