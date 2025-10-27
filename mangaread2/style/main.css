@@ -89,6 +89,22 @@ h3 {
     margin-bottom: 0.75rem;
 }
 
+table {
+    border: 1px solid var(--borders);
+}
+
+th {
+    font-weight: normal;
+    padding: 0 1rem;
+}
+
+td {
+    padding: 0.05rem 0.5rem;
+}
+
+tbody tr:nth-child(odd) {
+    background: hsl(55, 100%, 93%, 0.2);
+}
 
 nav {
     display: flex;
@@ -128,11 +144,9 @@ section:has(h2:only-child) {
     margin: 0 1rem;
 }
 
-#ocr .button {
-    margin-bottom: 0.5rem;
-}
-
 [popover] {
+    max-width: 90vw;
+    max-height: 90vh;
     background: var(--backgrounds);
     color: var(--text);
     border-color: var(--borders);
@@ -414,7 +428,10 @@ figcaption {
 
     & table {
         margin-top: 1rem;
-        border: 1px solid hsl(55, 100%, 93%, 0.2);
+    }
+
+    & td {
+        padding: 0.05rem 0.5rem;
     }
 
     & td:nth-child(1) a {
@@ -439,19 +456,6 @@ figcaption {
         margin-top: 0.5rem;
         color: var(--text-darkest);
     }
-}
-
-th {
-    font-weight: normal;
-    padding: 0 1rem;
-}
-
-td {
-    padding: 0.05rem 0.05rem;
-}
-
-tr:nth-child(odd) {
-    background: hsl(55, 100%, 93%, 0.2);
 }
 
 .sort-ocr-warning {
