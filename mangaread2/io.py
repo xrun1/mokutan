@@ -133,6 +133,10 @@ class MPath(Path):
         return self.stem.replace(" ", "-")
 
     @property
+    def has_images(self) -> bool:
+        return self.is_dir() and any(map(is_web_image, self.iterdir()))
+
+    @property
     def images(self) -> list[Self]:
         if not self.is_dir():
             return []
@@ -485,7 +489,8 @@ async def start_ocr(
 ) -> Response:
     job = MPath(chapter).unextracted
     jobs = [job, *job.next_chapters(sort)] if keep_going else [job]
-    jobs = flatten(f.glob("**/") if recursive else [f] for f in jobs)
+    jobs = flatten(f.glob("**") if recursive else [f] for f in jobs)
+    jobs = [f for f in jobs if is_supported_archive(f) or f.has_images]
     jobs = [f for f in jobs if not f.ocr_json_file.exists()]
     (OCR_QUEUE.extendleft if prioritize else OCR_QUEUE.extend)(jobs)
     return RedirectResponse(url=referer, status_code=status.HTTP_303_SEE_OTHER)
