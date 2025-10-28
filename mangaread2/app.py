@@ -100,9 +100,13 @@ class WindowsDrives(Page):
 
 @asynccontextmanager
 async def life(_app: FastAPI):
+    difficulty.Difficulty.load_cache()
     difficulty.load_dict_data()
     await difficulty.ANKI.safe_load()
-    tasks = [asyncio.create_task(difficulty.ANKI.keep_updated())]
+    tasks = [
+        asyncio.create_task(difficulty.ANKI.keep_updated()),
+        asyncio.create_task(difficulty.Difficulty.keep_saving_cache()),
+    ]
     tasks += [
         asyncio.create_task(asyncio.to_thread(catch_log_exceptions(f), EXIT))
         for f in (io.queue_loop, io.trim_archive_cache)

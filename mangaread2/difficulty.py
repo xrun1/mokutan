@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import gzip as gz
 import html
 import json
 import math
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import timedelta
 from functools import lru_cache
 from importlib import resources
@@ -25,7 +26,7 @@ from fastapi.responses import RedirectResponse
 from mangaread2.utils import DATA_DIR
 
 from . import misc
-from .utils import log
+from .utils import CACHE_DIR, log
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -216,6 +217,8 @@ ANKI = Anki.restore_saved()
 @dataclass(slots=True)
 class Difficulty:
     cache: ClassVar[dict[Path, tuple[float, int, Self]]] = {}
+    cache_changed: ClassVar[bool] = False
+    cache_path: ClassVar[Path] = CACHE_DIR / "Difficulty.json.gz"
 
     page_scores: list[float] = field(default_factory=list)
     unique_terms: int = 0
@@ -268,6 +271,7 @@ class Difficulty:
 
         if not "".join(pages_text).strip():
             cls.cache[ocr_json] = (fs_stats.st_mtime, fs_stats.st_size, cls())
+            cls.cache_changed = True
             return cls.cache[ocr_json][2]
 
         pages = [jp_parser(p) for p in pages_text]
@@ -324,7 +328,45 @@ class Difficulty:
             anki_score_decrease=sum(anki_bonuses) / len(pages),
         )
         cls.cache[ocr_json] = (fs_stats.st_mtime, fs_stats.st_size, diff)
+        cls.cache_changed = True
         return diff
+
+    @classmethod
+    def load_cache(cls) -> bool:
+        if not cls.cache_path.exists():
+            return False
+
+        try:
+            cls.cache |= {
+                Path(path): (mtime, size, cls(**diff))
+                for path, (mtime, size, diff) in
+                json.loads(gz.decompress(cls.cache_path.read_bytes())).items()
+            }
+        except Exception:  # noqa: BLE001
+            log.exception("Failed reading %s", cls.cache_path)
+            return False
+
+        return True
+
+    @classmethod
+    def save_cache(cls) -> bool:
+        if not cls.cache_changed:
+            return False
+
+        cls.cache_path.parent.mkdir(parents=True, exist_ok=True)
+        data = json.dumps({
+            str(path): [mtime, size, asdict(diff)]
+            for path, (mtime, size, diff) in cls.cache.items()
+        }, ensure_ascii=False).encode()
+        cls.cache_path.write_bytes(gz.compress(data, 3))
+        cls.cache_changed = False
+        return True
+
+    @classmethod
+    async def keep_saving_cache(cls, interval: float = 20) -> None:
+        while True:
+            await asyncio.sleep(interval)
+            cls.save_cache()
 
 
 def load_dict_data() -> None:
