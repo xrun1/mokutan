@@ -238,6 +238,12 @@ figcaption {
     width: fit-content;
 }
 
+#images {
+    background: linear-gradient(
+        180deg, transparent, black 20%, black 80%, transparent
+    );
+}
+
 .image-entry {
     overflow: hidden;
     scrollbar-gutter: stable both-edges;
