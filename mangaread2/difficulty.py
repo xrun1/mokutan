@@ -206,8 +206,13 @@ class Anki:
 
     @classmethod
     def restore_saved(cls) -> Self:
-        if cls.SAVE_FILE.exists():
+        try:
             return cls(**json.loads(cls.SAVE_FILE.read_text(encoding="utf-8")))
+        except FileNotFoundError:
+            return cls()
+        except Exception:  # noqa: BLE001
+            log.exception("Failed reading %s", cls.SAVE_FILE)
+
         return cls()
 
 
