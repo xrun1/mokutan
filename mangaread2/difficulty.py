@@ -148,12 +148,6 @@ class Anki:
             Difficulty.cache.clear()
 
         self.loaded = True
-        self.SAVE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        self.SAVE_FILE.write_text(json.dumps({
-            "api": str(self.api),
-            "key": self.key,
-            "filters": self.filters,
-        }, ensure_ascii=False, indent=4), encoding="utf-8")
         return self
 
     async def safe_load(self) -> Self:
@@ -199,6 +193,15 @@ class Anki:
                 yield f"<span class=anki-young>{clean}</span>"
             else:
                 yield f"<span class=anki-mature>{clean}</span>"
+
+    def save(self) -> Self:
+        self.SAVE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        self.SAVE_FILE.write_text(json.dumps({
+            "api": str(self.api),
+            "key": self.key,
+            "filters": self.filters,
+        }, ensure_ascii=False, indent=4), encoding="utf-8")
+        return self
 
     @classmethod
     def restore_saved(cls) -> Self:
@@ -416,6 +419,7 @@ async def anki_load(api: str, key: str = "", referer: str = "/") -> Response:
         await ANKI.load()
     except AnkiPermissionError as e:
         return Response(str(e), status.HTTP_403_FORBIDDEN)
+    ANKI.save()
     return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
 
 
@@ -423,11 +427,11 @@ async def anki_load(api: str, key: str = "", referer: str = "/") -> Response:
 async def anki_add_filter(
     field: str, note_type: str = "*", deck: str = "*", referer: str = "/",
 ) -> Response:
-    await ANKI.add_filter(field, note_type, deck)
+    (await ANKI.add_filter(field, note_type, deck)).save()
     return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
 
 
 @anki_router.get("/filter/del")
 async def anki_delete_filter(index: int, referer: str) -> Response:
-    await ANKI.delete_filter(index)
+    (await ANKI.delete_filter(index)).save()
     return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
