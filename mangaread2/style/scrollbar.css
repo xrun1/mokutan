@@ -17,6 +17,8 @@
 ::-webkit-scrollbar-thumb {
     background: var(--sb-thumb-color);
     border: 0.33rem solid var(--sb-track-color);
+    min-width: 4rem;
+    min-height: 4rem;
 }
 
 ::-webkit-scrollbar-corner {
