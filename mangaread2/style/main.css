@@ -121,6 +121,7 @@ nav {
     &.bottom {
         border-bottom: 0;
         border-top: 1px solid var(--borders);
+        margin-top: 2rem;
     }
 
     & .button, & .folder-name {
@@ -333,7 +334,7 @@ figcaption {
 }
 
 .ocr-box-fg {
-    z-index: 101;
+    z-index: 101
 }
 
 #sort {
