@@ -291,15 +291,47 @@ figcaption {
 }
 
 .ocr-group {
-    transition: opacity 0.2s;
-    opacity: 0;
-
-    &:hover {
-        opacity: 1;
-    }
-
     & .full-dots {
         letter-spacing: -0.15em;
+    }
+
+    &:not(.has-overlap) {
+        transition: opacity 0.2s;
+        opacity: 0;
+
+        &:hover {
+            opacity: 1;
+        }
+    }
+
+    &.has-overlap {
+        &:not(:has(.ocr-box-pair:hover)) .ocr-box-bg {
+            background: transparent;
+            outline-color: transparent;
+        }
+        & .ocr-box-pair {
+            & .ocr-box-bg, .ocr-box-fg {
+                opacity: 0;
+                transition: opacity 0.2s;
+            }
+            &:hover {
+                & .ocr-box-bg, .ocr-box-fg {
+                    opacity: 1;
+                }
+            }
+        }
+        &:has(.ocr-box-pair:hover) .ocr-box-pair:not(:hover) {
+            pointer-events: none;
+
+            & .ocr-box-bg {
+                opacity: 1;
+                z-index: 99;
+                background: transparent;
+                outline-color: transparent;
+                border: 1px solid var(--borders) !important;
+            }
+
+        }
     }
 }
 
@@ -340,7 +372,7 @@ figcaption {
 }
 
 .ocr-box-fg {
-    z-index: 101
+    z-index: 101;
 }
 
 #sort {

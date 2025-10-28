@@ -21,33 +21,35 @@
     >
 
     {% for group in path.ocr_box_groups(img) %}
-        <div class=ocr-group lang="ja">
+        {% set ovl = "has-overlap" if group.has_overlap(0) else "" %}
+        <div class="ocr-group {{ovl}}" lang="ja">
         {% for box in group %}
-            {% set size = [box.image_w, box.image_h] %}
-            {% for kind in ["bg", "fg"] %}
-                {% set font_size = "min(" ~
-                    box.font_size ~ "px," ~
-                    box.font_size * 100 / box.image_w ~ "vw" ~
-                ")" %}
-                <pre class=ocr-box-{{kind}} style="
-                    left: {{box.x * 100}}%;
-                    top: {{box.y * 100}}%;
-                    {% if kind == 'fg' %}
-                        width: {{box.w * 100}}%;
-                        height: {{box.h * 100}}%;
-                    {% else %}
-                        min-width: {{box.w * 100}}%;
-                        min-height: {{box.h * 100}}%;
-                        outline-width: calc({{font_size}} / 3);
-                    {% endif %}
-                    font-size: {{font_size}};
-                    {% if box.vertical %}
-                        writing-mode: vertical-rl;
-                    {% endif %}
-                ">
-                    {{"\n".join(box.lines)}}
-                </pre>
-            {% endfor %}
+            <div class="ocr-box-pair">
+                {% for kind in ["bg", "fg"] %}
+                    {% set font_size = "min(" ~
+                        box.font_size ~ "px," ~
+                        box.font_size * 100 / box.image_w ~ "vw" ~
+                    ")" %}
+                    <pre class=ocr-box-{{kind}} style="
+                        left: {{box.x * 100}}%;
+                        top: {{box.y * 100}}%;
+                        {% if kind == 'fg' %}
+                            width: {{box.w * 100}}%;
+                            height: {{box.h * 100}}%;
+                        {% else %}
+                            min-width: {{box.w * 100}}%;
+                            min-height: {{box.h * 100}}%;
+                            outline-width: calc({{font_size}} / 3);
+                        {% endif %}
+                        font-size: {{font_size}};
+                        {% if box.vertical %}
+                            writing-mode: vertical-rl;
+                        {% endif %}
+                    ">
+                        {{"\n".join(box.lines)}}
+                    </pre>
+                {% endfor %}
+            </div>
         {% endfor %}
         </div>
     {% endfor %}

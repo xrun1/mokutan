@@ -9,11 +9,11 @@ import re
 import shutil
 import time
 import unicodedata
-from collections import defaultdict, deque
+from collections import UserList, defaultdict, deque
 from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from itertools import starmap
+from itertools import combinations, starmap
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
 from uuid import uuid4
@@ -66,6 +66,24 @@ class OCRBox:
     vertical: bool = False
     font_size: int = 0
     lines: list[str] = field(default_factory=list)
+
+
+class OCRGroup(UserList[OCRBox]):
+    def has_overlap(self, threshold: float) -> bool:
+        print()
+        for a, b in combinations(self, 2):
+            left = max(a.x, b.x)
+            right = min(a.x + a.w, b.x + b.w)
+            top = max(a.y, b.y)
+            bottom = min(a.y + a.h, b.y + b.h)
+
+            if left < right and top < bottom:
+                overlap_w = right - left
+                overlap_h = bottom - top
+                overlap_area = overlap_w * overlap_h
+                if overlap_area > threshold:
+                    return True
+        return False
 
 
 class MPath(Path):
@@ -281,7 +299,7 @@ class MPath(Path):
     def mark_unread(self) -> None:
         self.set_mark("read", None)
 
-    def ocr_box_groups(self, image: Path) -> Iterable[list[OCRBox]]:
+    def ocr_box_groups(self, image: Path) -> Iterable[OCRGroup]:
         if self.ocr_json_file.exists():
             data = json.load(self.ocr_json_file.open(encoding="utf-8"))
         elif self.ocr_wip_dir.exists():
@@ -308,7 +326,7 @@ class MPath(Path):
                 lines.reverse()
                 coords.reverse()
 
-            boxes = []
+            boxes = OCRGroup()
             prev_start = prev_end = Point(math.inf, math.inf)
 
             # Split OCR-detected boxes that are probably multiple
