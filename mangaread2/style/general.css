@@ -1,0 +1,152 @@
+html {
+    font-size: 62.5%;
+}
+
+body {
+    background-image: url("./fog.png"), url("./stars.png");
+    background-size: cover, auto;
+    background-color: var(--backgrounds);
+    background-attachment: fixed;
+    color: var(--text);
+    text-align: center;
+    font-family: var(--sans);
+    font-size: 1.6rem;
+}
+
+section:has(h2:only-child) {
+    display: none;
+}
+
+[popover] {
+    max-width: 90vw;
+    max-height: 90vh;
+    background: var(--backgrounds);
+    color: var(--text);
+    border-color: var(--borders);
+
+    & h3 {
+        margin-top: 0;
+    }
+
+    & h4 {
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+    }
+}
+
+table {
+    border: 1px solid var(--borders);
+}
+
+th {
+    font-weight: normal;
+    padding: 0 1rem;
+}
+
+td {
+    padding: 0.05rem 0.5rem;
+}
+
+tbody tr:nth-child(odd) {
+    background: hsl(55, 100%, 93%, 0.2);
+}
+
+form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+}
+
+label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+select, input {
+    background: var(--backgrounds-lighter);
+    color: var(--text);
+    border: 1px solid var(--borders);
+
+    &::placeholder {
+        color: var(--text-darker);
+    }
+}
+
+input {
+    padding: 0.25rem 0.5rem;
+}
+
+button, .button {
+    background: var(--backgrounds-lighter);
+    color: var(--text);
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    text-decoration: none;
+    border: 1px solid var(--accent-darker);
+    transition: 0.2s color, 0.2s border-color, 0.15s scale;
+    cursor: pointer;
+
+    &:hover {
+        color: var(--text-darker);
+
+        .accent {
+            color: var(--accent-darker);
+        }
+    }
+
+    &.accent:hover {
+        color: var(--accent-darker);
+    }
+
+    &:active {
+        scale: 0.9;
+    }
+}
+
+figure {
+    margin: 0;
+}
+
+figcaption {
+    width: fit-content;
+}
+
+a {
+    color: var(--accent);
+    border: 0 solid var(--accent);
+    transition: 0.2s color;
+
+    &:hover {
+        color: var(--accent-darker);
+    }
+}
+
+h2 {
+    font-weight: normal;
+    margin-top: 2rem;
+    margin-bottom: 0rem;
+}
+
+h3 {
+    font-weight: normal;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+}
+
+:focus-visible {
+    outline: 1px solid var(--accent);
+}
+
+[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.accent {
+    color: var(--accent);
+    transition: 0.2s color;
+}

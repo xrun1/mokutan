@@ -1,0 +1,36 @@
+.anki[popover] {
+    width: min(100%, 40em);
+
+    > * {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    & table {
+        width: 100%;
+    }
+
+    & td select, td button {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+.anki-connected {
+    margin: 0 1rem;
+}
+
+details:not(:has(.anki-connected)) .anki-filters-title {
+    display: none;
+}
+
+.anki-filters-title {
+    margin-top: 1rem;
+    margin-bottom: 0;
+    font-weight: normal;
+}
+
+.anki-learned-count {
+    margin-top: 0.25rem;
+    margin-bottom: 0;
+}

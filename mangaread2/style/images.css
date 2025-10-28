@@ -1,0 +1,131 @@
+#images {
+    background: linear-gradient(
+        180deg, transparent, black 20%, black 80%, transparent
+    );
+}
+
+.image-entry {
+    overflow: hidden;
+    scrollbar-gutter: stable both-edges;
+
+    &:has(.ocr-group:hover) {
+        overflow: auto;
+    }
+
+    & img {
+        width: 100%;
+        border: 1px solid var(--borders);
+        user-select: none;
+    }
+}
+
+.image-entry-info {
+    margin: 2rem auto;
+    border: 1px solid var(--borders);
+    padding: 0.3rem 0.75rem;
+    font-size: 1.4rem;
+
+    & h3 {
+        margin: 0;
+    }
+
+    & a {
+        color: var(--text);
+        text-decoration: none;
+
+        &:hover {
+            color: var(--text-darker);
+            border-color: var(--text-darker);
+        }
+    }
+}
+
+.image-entry-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.ocr-group {
+    & .full-dots {
+        letter-spacing: -0.15em;
+    }
+
+    &:not(.has-overlap) {
+        transition: opacity 0.2s;
+        opacity: 0;
+
+        &:hover {
+            opacity: 1;
+        }
+    }
+
+    &.has-overlap {
+        &:not(:has(.ocr-box-pair:hover)) .ocr-box-bg {
+            background: transparent;
+            outline-color: transparent;
+        }
+        & .ocr-box-pair {
+            & .ocr-box-bg, .ocr-box-fg {
+                opacity: 0;
+                transition: opacity 0.2s;
+            }
+            &:hover {
+                & .ocr-box-bg, .ocr-box-fg {
+                    opacity: 1;
+                }
+            }
+        }
+        &:has(.ocr-box-pair:hover) .ocr-box-pair:not(:hover) {
+            pointer-events: none;
+
+            & .ocr-box-bg {
+                opacity: 1;
+                z-index: 99;
+                background: transparent;
+                outline-color: transparent;
+                border: 1px solid var(--borders) !important;
+            }
+
+        }
+    }
+}
+
+.ocr-box-bg, .ocr-box-fg {
+    font-family: var(--sans);
+    white-space-collapse: preserve-breaks;
+    text-wrap-mode: nowrap;
+    position: absolute;
+    text-align: left;
+    line-height: 1.1em;
+    color: black;
+    margin: 0;
+
+    & .anki-mature {
+        color: forestgreen;
+    }
+
+    & .anki-young {
+        color: chocolate;
+    }
+
+    & .anki-new {
+        color: firebrick;
+    }
+}
+
+.ocr-box-bg {
+    z-index: 100;
+    background: white;
+    outline: solid white;
+    color: transparent;
+    user-select: none;
+    pointer-events: none;
+
+    & * {
+        color: transparent !important;
+    }
+}
+
+.ocr-box-fg {
+    z-index: 101;
+}

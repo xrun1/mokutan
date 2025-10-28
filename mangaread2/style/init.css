@@ -1,0 +1,20 @@
+@import "normalize.css";
+@import "fonts.css";
+@import "scrollbar.css";
+@import "general.css";
+@import "nav.css";
+@import "anki-popup.css";
+@import "ocr-popup.css";
+@import "files.css";
+@import "images.css";
+
+:root {
+    --backgrounds: black;
+    --backgrounds-lighter: #161616;
+    --borders: #333;
+    --text: lightyellow;
+    --text-darker: #d3d3b9;
+    --text-darkest: #a1a198;
+    --accent: crimson;
+    --accent-darker: firebrick;
+}

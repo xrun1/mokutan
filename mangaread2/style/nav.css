@@ -1,0 +1,49 @@
+nav {
+    background: var(--backgrounds);
+    display: flex;
+    align-items: center;
+    width: 100%;
+    border-bottom: 1px solid var(--borders);
+    line-height: 2.6rem;
+    padding: 0 0.25rem;
+
+    &.bottom {
+        border-bottom: 0;
+        border-top: 1px solid var(--borders);
+        margin-top: 2rem;
+    }
+
+    & .button, & .folder-name {
+        white-space: nowrap;
+        text-decoration: none;
+    }
+
+    & .button {
+        padding: 0 0.5rem;
+        margin: 0.5rem 0.25rem;
+        font-size: 2rem;
+    }
+
+    & .folder-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 1.6rem;
+        margin: 0 0.25rem;
+        font-weight: normal;
+        text-align: left;
+        width: 100%;
+    }
+}
+
+nav [popover] {
+    inset: unset;
+    top: 4.35rem;
+    right: 0.5rem;
+    margin-left: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+nav.bottom [popover] {
+    top: unset;
+    bottom: 4.35rem;
+}
