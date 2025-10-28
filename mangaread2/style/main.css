@@ -237,6 +237,15 @@ figcaption {
     width: fit-content;
 }
 
+.image-entry {
+    overflow: hidden;
+    scrollbar-gutter: stable both-edges;
+}
+
+.image-entry:has(.ocr-group:hover) {
+    overflow: auto;
+}
+
 .image-entry img {
     width: 100%;
     border: 1px solid var(--borders);
@@ -272,7 +281,6 @@ figcaption {
 .image-entry-wrapper {
     position: relative;
     display: inline-block;
-    overflow-x: auto;
 }
 
 .ocr-group {
@@ -325,7 +333,7 @@ figcaption {
 }
 
 .ocr-box-fg {
-    z-index: 101
+    z-index: 101;
 }
 
 #sort {
