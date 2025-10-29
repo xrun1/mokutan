@@ -28,18 +28,24 @@
     padding: 0.3rem 0.75rem;
     font-size: 1.4rem;
 
-    & h3 {
-        margin: 0;
+    & a {
+        text-decoration: none;
     }
 
-    & a {
-        color: var(--text);
-        text-decoration: none;
+    & h3 {
+        display: inline;
+        margin: 0;
 
-        &:hover {
-            color: var(--text-darker);
-            border-color: var(--text-darker);
+        & a {
+            color: var(--text);
+            &:hover {
+                color: var(--text-darker);
+            }
         }
+    }
+
+    & .refresh {
+        font-size: 1.8rem;
     }
 }
 

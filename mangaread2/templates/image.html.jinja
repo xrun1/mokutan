@@ -4,6 +4,7 @@
     </h3>
     {% if index1 > progress[0] %}
         <a
+            class="refresh"
             href="{{force_refresh_url}}#{{img.as_anchor}}"
             title="OCR in progress, click to refresh"
         >⟳</a>
