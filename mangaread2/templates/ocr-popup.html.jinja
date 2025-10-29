@@ -60,8 +60,9 @@
             <th>Actions</th>
         </tr>
     </thead><tbody>
+    {% set page_path = path.unextracted %}
     {% for path in queue.copy() %}
-        <tr>
+        <tr class="{{'current' if path == page_path else ''}}">
             <td>
                 <a id="{{path.as_anchor}}" href="{{path.url()}}">
                     {{path}}

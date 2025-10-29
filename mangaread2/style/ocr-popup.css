@@ -13,6 +13,10 @@
         margin-top: 1rem;
     }
 
+    & tr.current {
+        background: color-mix(in srgb, var(--accent-darker) 50%, transparent);
+    }
+
     & td {
         padding: 0.05rem 0.5rem;
     }
