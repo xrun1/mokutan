@@ -167,6 +167,20 @@ class MPath(Path):
         ))
 
     @property
+    def page_count(self) -> int:
+        try:
+            if is_supported_archive(self):
+                with ZipFile(self) as zf:
+                    return len([
+                        f for f in zf.filelist if is_web_image(f.orig_filename)
+                    ])
+            else:
+                return len(self.images)
+        except OSError:
+            log.exception("Error trying to calculate page count for %s", self)
+            return 0
+
+    @property
     def difficulty(self) -> Difficulty:
         return Difficulty.calculate(self.ocr_json_file)
 
@@ -189,18 +203,8 @@ class MPath(Path):
 
     @property
     def ocr_progress(self) -> tuple[int, int]:
-        try:
-            if is_supported_archive(self):
-                with ZipFile(self) as zf:
-                    total = len([
-                        f for f in zf.filelist if is_web_image(f.orig_filename)
-                    ])
-            else:
-                total = len(self.images)
-        except OSError:
-            log.exception("Error trying to gauge OCR progress for %s", self)
+        if not (total := self.page_count):
             return (0, 0)
-
         if self.ocr_json_file.exists():
             return (total, total)
         if not self.ocr_wip_dir.exists():
@@ -395,11 +399,11 @@ class MPath(Path):
         if sort == "m":
             return ns(lambda e: e.stat().st_mtime)
         if sort == "p":
-            return ns(lambda e: len(e.images))
+            return ns(lambda e: e.page_count or math.inf)
         if sort == "d":
             return ns(lambda e: e.difficulty.score or math.inf)
         if sort == "x":
-            return ns(lambda e: sum(e.difficulty.page_scores))
+            return ns(lambda e: sum(e.difficulty.page_scores) or math.inf)
         if sort == "a":
             return ns(lambda e: e.difficulty.anki_learned_percent, invert=True)
         if sort == "r":
