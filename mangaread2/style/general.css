@@ -139,6 +139,10 @@ h3 {
 .flex-row-break {
     flex-basis: 100%;
     margin-top: 2rem;
+
+    &:first-child, &:last-child {
+        display: none;
+    }
 }
 
 :focus-visible {
