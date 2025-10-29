@@ -49,7 +49,7 @@
 {% set rf = "?referer=" ~ request.url %}
 <a href="{{force_refresh_url}}">⟳ Refresh</a>
 <a href="/ocr/pause{{rf}}">{{"︎︎︎⏵ Resume" if queue_paused else "⏸ Pause"}}</a>
-<a href="/ocr/clear{{rf}}">✖ Cancel all</a>
+<a href="/ocr/clear{{rf}}">✕ Cancel all</a>
 
 <table>
     <thead>
@@ -81,7 +81,7 @@
                 <a href="/ocr/shift/+1/{{path}}{{rf}}" title="Move down">🠉</a>
                 <a href="/ocr/move/0/{{path}}{{rf}}" title="Process now">⭱</a>
                 <a href="/ocr/move/end/{{path}}{{rf}}" title="Make last">⭳</a>
-                <a href="/ocr/cancel/{{path}}{{rf}}" title="Cancel">✖</a>
+                <a href="/ocr/cancel/{{path}}{{rf}}" title="Cancel">✕</a>
                 <a
                     href="/ocr/cancel/{{path}}{{rf}}&recursive=1"
                     title="Cancel this and all subfolders recursively"
