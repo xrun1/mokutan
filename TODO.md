@@ -1,2 +1,1 @@
-- matching OCR status in Images section
 - image width instead of max-width to let zoom past?

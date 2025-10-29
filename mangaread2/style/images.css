@@ -45,7 +45,14 @@
     }
 
     & .refresh {
-        font-size: 1.8rem;
+        display: inline-block;
+        scale: 1.3;
+        margin-left: 0.5rem;
+    }
+
+    & .open-ocr {
+        border: none;
+        color: var(--accent);
     }
 }
 
