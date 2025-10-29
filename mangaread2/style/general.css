@@ -136,6 +136,11 @@ h3 {
     margin-bottom: 0.75rem;
 }
 
+.flex-row-break {
+    flex-basis: 100%;
+    margin-top: 2rem;
+}
+
 :focus-visible {
     outline: 1px solid var(--accent);
 }

@@ -21,7 +21,12 @@
             <h2>Files</h2>
             {% include "file-options.html.jinja" %}
             <ul>
+                {% set ns = namespace(b=False) %}
                 {% for path in path.non_images(sort) %}
+                    {% if sort == "r" and not ns.b and not path.read_date %}
+                        <li class="flex-row-break"></li>
+                        {% set ns.b = True %}
+                    {% endif %}
                     <li class="file-entry">{% include "file.html.jinja" %}</li>
                 {% endfor %}
             </ul>
