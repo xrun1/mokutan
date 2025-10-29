@@ -24,6 +24,7 @@
                 {% set ns = namespace(break_done=False) %}
                 {% for path in path.non_images(sort) %}
                     {% if not ns.break_done and (
+                        (sort == "p" and not path.page_count) or
                         (sort == "r" and not path.read_date) or
                         (sort in ["d", "a", "x"] and not path.difficulty)
                     ) %}

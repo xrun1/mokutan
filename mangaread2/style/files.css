@@ -50,7 +50,7 @@ body:has(#sort a[value=x].checked) .sort-ocr-warning {
         scroll-margin-top: calc(50vh - var(--height) / 2 - 3rem - 1.6rem);
     }
 
-    &:has(span[title^="Read the"]) {
+    &:has(.read-date) {
         & .file-name, .folder-status {
             opacity: 0.6;
         }
