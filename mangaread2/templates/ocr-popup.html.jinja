@@ -48,7 +48,7 @@
 <h4>Queue</h4>
 {% set rf = "?referer=" ~ request.url %}
 <a href="{{force_refresh_url}}">⟳ Refresh</a>
-<a href="/ocr/pause{{rf}}">{{"︎︎︎⏵ Resume" if paused else "⏸ Pause"}}</a>
+<a href="/ocr/pause{{rf}}">{{"︎︎︎⏵ Resume" if queue_paused else "⏸ Pause"}}</a>
 <a href="/ocr/clear{{rf}}">✖ Cancel all</a>
 
 <table>
