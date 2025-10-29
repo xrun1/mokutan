@@ -1,3 +1,7 @@
+#files {
+    flex-grow: 1;
+}
+
 #sort {
     margin-top: 1rem;
 

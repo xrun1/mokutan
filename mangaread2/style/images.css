@@ -1,4 +1,5 @@
 #images {
+    flex-grow: 1;
     background: linear-gradient(
         180deg, transparent, black 20%, black 80%, transparent
     );

@@ -3,6 +3,9 @@ html {
 }
 
 body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
     background-image: url("./fog.png"), url("./stars.png");
     background-size: cover, auto;
     background-color: var(--backgrounds);
