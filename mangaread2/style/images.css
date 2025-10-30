@@ -59,6 +59,10 @@
 .image-entry-wrapper {
     position: relative;
     display: inline-block;
+
+    &:has(.ocr-box-pair:hover) .ocr-box-pair:not(:hover) {
+        pointer-events: none;
+    }
 }
 
 .ocr-group {
@@ -92,8 +96,6 @@
             }
         }
         &:has(.ocr-box-pair:hover) .ocr-box-pair:not(:hover) {
-            pointer-events: none;
-
             & .ocr-box-bg {
                 opacity: 1;
                 z-index: 99;
