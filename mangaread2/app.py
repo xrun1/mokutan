@@ -5,7 +5,7 @@ import os
 from abc import ABC
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path  # noqa: TC003
 from threading import Event
 from typing import TYPE_CHECKING, ClassVar
 from urllib.parse import parse_qs
