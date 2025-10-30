@@ -26,8 +26,9 @@ from natsort import natsorted
 from mangaread2 import difficulty, io
 
 from . import DISPLAY_NAME, NAME
-from .io import EXTRACT_DIR, OCR_QUEUE, MPath
+from .io import EXTRACT_DIR, MPath
 from .utils import (
+    ReferrerRedirect,
     catch_log_exceptions,
     ellide,
     is_supported_archive,
@@ -35,8 +36,6 @@ from .utils import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from fastapi.datastructures import URL
 
 LOADER = jinja2.PackageLoader(NAME, "templates")
@@ -171,15 +170,15 @@ async def thumbnail(path: Path | str, recurse: int = 2) -> Response:
 
 
 @app.get("/mark/read/{path:path}")
-async def mark_read(path: Path, referer: str = "/") -> Response:
+async def mark_read(request: Request, path: Path) -> Response:
     MPath(path).mark_read()
-    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
+    return ReferrerRedirect(request)
 
 
 @app.get("/mark/unread/{path:path}")
-async def mark_unread(path: Path, referer: str = "/") -> Response:
+async def mark_unread(request: Request, path: Path) -> Response:
     MPath(path).mark_unread()
-    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
+    return ReferrerRedirect(request)
 
 
 @app.get("/{path:path}")

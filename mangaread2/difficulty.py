@@ -19,14 +19,13 @@ import fugashi
 import httpx
 import unidic
 from cihai.core import Cihai
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Request, Response, status
 from fastapi.datastructures import URL
-from fastapi.responses import RedirectResponse
 
 from mangaread2.utils import DATA_DIR
 
 from . import misc
-from .utils import CACHE_DIR, log
+from .utils import CACHE_DIR, ReferrerRedirect, log
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -459,7 +458,7 @@ def script_difficulty(word: str) -> float:
 
 
 @anki_router.get("/load")
-async def anki_load(api: str, key: str = "", referer: str = "/") -> Response:
+async def anki_load(request: Request, api: str, key: str = "") -> Response:
     try:
         ANKI.api = URL(api)
         ANKI.key = key
@@ -467,18 +466,18 @@ async def anki_load(api: str, key: str = "", referer: str = "/") -> Response:
     except AnkiPermissionError as e:
         return Response(str(e), status.HTTP_403_FORBIDDEN)
     ANKI.save()
-    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
+    return ReferrerRedirect(request)
 
 
 @anki_router.get("/filter/add")
 async def anki_add_filter(
-    field: str, note_type: str = "*", deck: str = "*", referer: str = "/",
+    request: Request, field: str, note_type: str = "*", deck: str = "*",
 ) -> Response:
     (await ANKI.add_filter(field, note_type, deck)).save()
-    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
+    return ReferrerRedirect(request)
 
 
 @anki_router.get("/filter/del")
-async def anki_delete_filter(index: int, referer: str) -> Response:
+async def anki_delete_filter(request: Request, index: int) -> Response:
     (await ANKI.delete_filter(index)).save()
-    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
+    return ReferrerRedirect(request)

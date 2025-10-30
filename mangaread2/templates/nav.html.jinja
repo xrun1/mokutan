@@ -29,18 +29,17 @@
     >⭡</a>
 {% endif %}
 
-{% set tail = path.url() ~ "?referer=" ~ request.url %}
 {% if path.has_mark("read") %}
     <a
         class="toggle-read button accent"
         title="Mark as unread"
-        href="/mark/unread{{tail}}"
+        href="/mark/unread{{path.url()}}"
     >📖{{no_emoji}}<sup>✖</sup></a>
 {% else %}
     <a
         class="toggle-read button accent"
         title="Mark as read"
-        href="/mark/read{{tail}}"
+        href="/mark/read{{path.url()}}"
     >📖{{no_emoji}}<sup>✔</sup></a>
 {% endif %}
 

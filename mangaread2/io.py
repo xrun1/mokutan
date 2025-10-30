@@ -20,8 +20,8 @@ from uuid import uuid4
 from zipfile import ZipFile
 
 import wakepy
+from fastapi import Request
 from fastapi.datastructures import URL
-from fastapi.responses import RedirectResponse
 from natsort import natsorted
 from PIL import Image
 
@@ -30,6 +30,7 @@ from mangaread2.difficulty import ANKI, Difficulty
 from .utils import (
     CACHE_DIR,
     DATA_DIR,
+    ReferrerRedirect,
     is_supported_archive,
     is_web_image,
     log,
@@ -39,7 +40,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
     from threading import Event
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Response
 
 from .utils import Point, flatten, get_sorted_dir
 
@@ -494,20 +495,20 @@ def trim_archive_cache(stop: Event) -> None:
 
 
 @router.get("/pause")
-async def toggle_pause_queue(referer: str = "/") -> Response:
+async def toggle_pause_queue(request: Request) -> Response:
     global pause_queue  # noqa: PLW0603
     pause_queue = not pause_queue
-    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
+    return ReferrerRedirect(request)
 
 
 @router.get("/start/{chapter:path}")
 async def start_ocr(
+    request: Request,
     chapter: Path | str,
     keep_going: bool = False,
     recursive: bool = False,
     prioritize: bool = False,
     sort: str = "",
-    referer: str = "/",
 ) -> Response:
     job = MPath(chapter).unextracted
     jobs = [job, *job.next_chapters(sort)] if keep_going else [job]
@@ -519,12 +520,12 @@ async def start_ocr(
         not f.ocr_json_file.exists()
     ]
     (OCR_QUEUE.extendleft if prioritize else OCR_QUEUE.extend)(jobs)
-    return RedirectResponse(url=referer, status_code=status.HTTP_303_SEE_OTHER)
+    return ReferrerRedirect(request)
 
 
 @router.get("/cancel/{chapter:path}")
 async def cancel_ocr(
-    chapter: Path | str, recursive: bool = False, referer: str = "/",
+    request: Request, chapter: Path | str, recursive: bool = False,
 ) -> Response:
     job = MPath(chapter).unextracted
     OCR_QUEUE.remove(job)
@@ -535,53 +536,49 @@ async def cancel_ocr(
         OCR_QUEUE.extend(j for j in queue if job not in j.parents)
 
     if not OCR_QUEUE and pause_queue:
-        await toggle_pause_queue()
+        await toggle_pause_queue(request)
 
-    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
+    return ReferrerRedirect(request)
 
 
 @router.get("/clear")
-async def cancel_all_ocr(referer: str = "/") -> Response:
+async def cancel_all_ocr(request: Request) -> Response:
     OCR_QUEUE.clear()
     if pause_queue:
-        await toggle_pause_queue()
-    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
+        await toggle_pause_queue(request)
+    return ReferrerRedirect(request)
 
 
 @router.get("/move/end/{chapter:path}")
 async def move_ocr_job_position_end(
-    chapter: Path | str, referer: str = "/",
+    request: Request, chapter: Path | str,
 ) -> Response:
-    return await move_ocr_job_position(
-        chapter, len(OCR_QUEUE), referer,
-    )
+    return await move_ocr_job_position(request, chapter, len(OCR_QUEUE))
 
 
 @router.get("/move/{to}/{chapter:path}")
 async def move_ocr_job_position(
-    chapter: Path | str, to: int, referer: str = "/",
+    request: Request, chapter: Path | str, to: int,
 ) -> Response:
     job = MPath(chapter).unextracted
     del OCR_QUEUE[OCR_QUEUE.index(job)]
     OCR_QUEUE.insert(to, job)
-    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
+    return ReferrerRedirect(request)
 
 
 @router.get("/shift/{by}/{chapter:path}")
 async def shift_ocr_job_position(
-    chapter: Path | str, by: int, referer: str = "/",
+    request: Request, chapter: Path | str, by: int,
 ) -> Response:
     job = MPath(chapter).unextracted
     del OCR_QUEUE[index := OCR_QUEUE.index(job)]
     OCR_QUEUE.insert(index + by, job)
-    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
+    return ReferrerRedirect(request)
 
 
 @router.get("/edit")
-async def manual_edit_ocr_queue(
-    content: str, referer: str = "/",
-) -> Response:
+async def manual_edit_ocr_queue(request: Request, content: str) -> Response:
     OCR_QUEUE.clear()
     jobs = (MPath(x).unextracted for x in content.splitlines())
     OCR_QUEUE.extend(j for j in jobs if j.exists())
-    return RedirectResponse(referer, status.HTTP_303_SEE_OTHER)
+    return ReferrerRedirect(request)

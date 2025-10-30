@@ -10,8 +10,6 @@
             placeholder="Leave blank if not set up">
     </label>
 
-    <input type=hidden name=referer value="{{request.url}}">
-
     {% if anki.loaded %}
         <button class=connect type="submit">Reload</button>
         <span class="anki-connected accent">✔ Connected</span>
@@ -51,7 +49,6 @@
                 </td>
 
                 <input type=hidden name=index value="{{loop.index0}}">
-                <input type=hidden name=referer value="{{request.url}}">
                 <td><button type="submit">Remove</button></td>
             </tr>
         </form>
@@ -86,7 +83,6 @@
                     </select>
                 </td>
 
-                <input type=hidden name=referer value="{{request.url}}">
                 <td><button type="submit">Add</button></td>
             </tr>
         </form>

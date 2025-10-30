@@ -21,7 +21,6 @@
 {% set disable= "" if path.ocr_can_begin else "disabled" %}
 <form action="/ocr/start{{path.url()}}" {{disable}}>
     <input type=hidden name=sort value="{{sort}}">
-    <input type=hidden name=referer value="{{request.url}}">
     {% set next = path.next_chapter(sort) %}
     {% if next %}
         <label>
@@ -46,10 +45,9 @@
 </form>
 
 <h4>Queue</h4>
-{% set rf = "?referer=" ~ request.url %}
 <a href="{{force_refresh_url}}">⟳ Refresh</a>
-<a href="/ocr/pause{{rf}}">{{"︎︎︎⏵ Resume" if queue_paused else "⏸ Pause"}}</a>
-<a href="/ocr/clear{{rf}}">✕ Cancel all</a>
+<a href="/ocr/pause">{{"︎︎︎⏵ Resume" if queue_paused else "⏸ Pause"}}</a>
+<a href="/ocr/clear">✕ Cancel all</a>
 
 <table>
     <thead>

@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
 
 import appdirs
+from fastapi import Request, status
+from fastapi.responses import RedirectResponse
 from natsort import natsorted
 
 from . import NAME
@@ -24,6 +26,14 @@ CACHE_DIR = Path(appdirs.user_cache_dir(NAME, appauthor=False))
 class Point(NamedTuple):
     x: float
     y: float
+
+
+class ReferrerRedirect(RedirectResponse):
+    def __init__(self, request: Request) -> None:
+        super().__init__(
+            request.headers.get("referer") or "/",
+            status.HTTP_303_SEE_OTHER,
+        )
 
 
 def ellide(text: str, max_length: int) -> str:
