@@ -145,7 +145,7 @@ class MPath(Path):
 
     @property
     def display_name(self) -> str:
-        return self.name or str(self)
+        return self.name or str(self).rstrip("/\\")
 
     @property
     def is_nt_drive(self) -> bool:
@@ -153,7 +153,7 @@ class MPath(Path):
 
     @property
     def as_anchor(self) -> str:
-        return self.stem.replace(" ", "-")
+        return self.display_name.replace(" ", "-")
 
     @property
     def has_images(self) -> bool:
