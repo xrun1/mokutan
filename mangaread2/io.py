@@ -198,7 +198,7 @@ class MPath(Path):
     @property
     def ocr_queue_position(self) -> int | None:
         try:
-            return OCR_QUEUE.index(self)
+            return OCR_QUEUE.index(self.unextracted)
         except ValueError:
             return None
 
@@ -222,15 +222,18 @@ class MPath(Path):
 
     @property
     def ocr_paused(self) -> bool:
-        return pause_queue and bool(OCR_QUEUE) and OCR_QUEUE[0] == self
+        return pause_queue and bool(OCR_QUEUE) and \
+            OCR_QUEUE[0] == self.unextracted
 
     @property
     def ocr_running(self) -> bool:
-        return not pause_queue and bool(OCR_QUEUE) and OCR_QUEUE[0] == self
+        return not pause_queue and bool(OCR_QUEUE) and \
+            OCR_QUEUE[0] == self.unextracted
 
     @property
     def ocr_queued(self) -> bool:
-        return not pause_queue and self in OCR_QUEUE and OCR_QUEUE[0] != self
+        return not pause_queue and self in OCR_QUEUE and \
+            OCR_QUEUE[0] != self.unextracted
 
     @property
     def ocr_done(self) -> bool:
@@ -473,7 +476,8 @@ def queue_loop(stop: Event) -> None:
             current = None
 
         if not current and OCR_QUEUE:
-            chapter = OCR_QUEUE[0].unextracted
+            chapter = OCR_QUEUE[0]
+            assert chapter == chapter.unextracted
             proc = multiprocessing.Process(
                 target=_run_mokuro, args=[run, chapter], daemon=True,
             )

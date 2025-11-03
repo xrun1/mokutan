@@ -2,12 +2,15 @@
     <h3 lang="und">
         <a href="#{{img.as_anchor}}">{{img.name}}</a>
     </h3>
-    {% if index1 > progress[0] %}
+    {% if path.ocr_running and index1 > progress[0] %}
         <a
             class="refresh"
             href="{{force_refresh_url}}#{{img.as_anchor}}"
             title="OCR in progress, click to refresh"
         >⟳</a>
+    {% endif %}
+    {% if (path.ocr_running or path.ocr_queued or path.ocr_paused)
+           and index1 > progress[0] %}
         <button
             class="open-ocr"
             popovertarget="ocr-popup-top"
