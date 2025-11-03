@@ -31,15 +31,17 @@
 
 {% if path.has_mark("read") %}
     <a
+        id="toggle-read-{{side}}"
         class="toggle-read button accent"
         title="Mark as unread"
-        href="/mark/unread{{path.url()}}"
+        href="/mark/unread{{path.url()}}?focus=toggle-read-{{side}}"
     >📖{{no_emoji}}<sup>✖</sup></a>
 {% else %}
     <a
+        id="toggle-read-{{side}}"
         class="toggle-read button accent"
         title="Mark as read"
-        href="/mark/read{{path.url()}}"
+        href="/mark/read{{path.url()}}?focus=toggle-read-{{side}}"
     >📖{{no_emoji}}<sup>✔</sup></a>
 {% endif %}
 

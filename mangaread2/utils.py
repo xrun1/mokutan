@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, NamedTuple
 
 import appdirs
 from fastapi import Request, status
+from fastapi.datastructures import URL
 from fastapi.responses import RedirectResponse
 from natsort import natsorted
 
@@ -31,7 +32,8 @@ class Point(NamedTuple):
 class ReferrerRedirect(RedirectResponse):
     def __init__(self, request: Request) -> None:
         super().__init__(
-            request.headers.get("referer") or "/",
+            URL(request.headers.get("referer") or "/")
+                .replace(fragment=request.query_params.get("focus")),
             status.HTTP_303_SEE_OTHER,
         )
 
