@@ -47,7 +47,7 @@
 
 {% set title_tag = "h1" if side == "top" else "p" %}
 <{{title_tag}} class="folder-name" lang="und">
-    {{path.name or path}}
+    {{path.display_name}}
 </{{title_tag}}>
 
 <button class="anki button" popovertarget="anki-popup-{{side}}">

@@ -144,6 +144,10 @@ class MPath(Path):
         return type(self)(path) if Path(path).exists() else self
 
     @property
+    def display_name(self) -> str:
+        return self.name or str(self)
+
+    @property
     def is_nt_drive(self) -> bool:
         return os.name == "nt" and self.is_absolute() and len(self.parts) == 1
 
