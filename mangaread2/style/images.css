@@ -14,7 +14,7 @@
     }
 
     & img {
-        width: 100%;
+        max-width: 100%;
         border: 1px solid var(--borders);
         user-select: none;
         object-fit: contain;
