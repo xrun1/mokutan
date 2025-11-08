@@ -290,16 +290,18 @@ class Difficulty:
             feat = term.feature
 
             def get(consider_rarity: bool = True) -> float:
+                minimum = 20_000
+                base = minimum + int(consider_rarity) * min(minimum, (
+                    jp_freqs.get((feat.lemma, feat.orthBase)) or
+                    jp_freqs.get(feat.orthBase) or
+                    jp_freqs.get(feat.lemma) or
+                    math.inf
+                ))
+                count = max(1, dedup_counts[feat.orthBase])
                 return (
-                    (20_000 + int(consider_rarity) * min(20_000, (
-                        jp_freqs.get((feat.lemma, feat.orthBase)) or
-                        jp_freqs.get(feat.orthBase) or
-                        jp_freqs.get(feat.lemma) or
-                        math.inf
-                    )))
+                    max(base / 10, base - base / 10 * (count - 1) ** 1.5)
                     * NON_CORE_POS1_DIFFICULTY_FACTORS.get(feat.pos1, 1)
                     * script_difficulty(term.surface)
-                    / max(1, dedup_counts[feat.orthBase])
                     * len(unique_vocab) ** 1.1
                 ) / 100_000
 
