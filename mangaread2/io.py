@@ -429,9 +429,10 @@ class MPath(Path):
         return (chapters, chapters.index(self.unextracted.parent / self.name))
 
     def _mark(self, name: str) -> Path:
-        if is_supported_archive(self):
-            return DATA_DIR / "Marks" / self.stem / f"{name}.txt"
-        return DATA_DIR / "Marks" / self.name / f"{name}.txt"
+        path = self.unextracted
+        if is_supported_archive(path):
+            return DATA_DIR / "Marks" / path.stem / f"{name}.txt"
+        return DATA_DIR / "Marks" / path.name / f"{name}.txt"
 
 
 def _run_mokuro(run: Callable[..., None], chapter: Path | str) -> None:
