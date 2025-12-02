@@ -168,7 +168,8 @@ class MPath(Path):
     def non_images(self, sort: str = "") -> list[Self]:
         return self._sort(sort, (
             p for p in self.iterdir() if not
-            (is_web_image(p) or p.suffix == ".mokuro" or p.name == "_ocr")
+            (is_web_image(p) or p.suffix == ".mokuro" or p.name == "_ocr"
+             or p.name.endswith(".read.json"))
         ))
 
     @property
@@ -247,7 +248,7 @@ class MPath(Path):
     @property
     def read_date(self) -> tuple[datetime, timedelta, str] | None:
         if (data := self.get_mark("read")):
-            date = datetime.fromisoformat(data).astimezone()
+            date = datetime.fromisoformat(data["date"]).astimezone()
             delta = datetime.now(UTC) - date.astimezone(UTC)
             sec = delta.total_seconds()
 
@@ -290,26 +291,27 @@ class MPath(Path):
     def has_mark(self, name: str) -> bool:
         return self._mark(name).exists()
 
-    def get_mark(self, name: str) -> str | None:
+    def get_mark(self, name: str) -> dict[str, Any]:
         try:
-            return self._mark(name).read_text(encoding="utf-8").rstrip()
+            return json.loads(self._mark(name).read_text(encoding="utf-8"))
         except FileNotFoundError:
-            return None
+            return {}
 
-    def set_mark(self, name: str, data: str | None) -> None:
-        if data is None:
+    def set_mark(self, name: str, **data: str) -> None:
+        if data:
+            self._mark(name).parent.mkdir(parents=True, exist_ok=True)
+            dump = json.dumps(data, indent=4, ensure_ascii=False)
+            self._mark(name).write_text(dump, encoding="utf-8")
+        else:
             self._mark(name).unlink(missing_ok=True)
             with suppress(OSError):
                 self._mark(name).parent.rmdir()
-        else:
-            self._mark(name).parent.mkdir(parents=True, exist_ok=True)
-            self._mark(name).write_text(data, encoding="utf-8")
 
     def mark_read(self) -> None:
-        self.set_mark("read", datetime.now(UTC).astimezone().isoformat())
+        self.set_mark("read", date=datetime.now(UTC).astimezone().isoformat())
 
     def mark_unread(self) -> None:
-        self.set_mark("read", None)
+        self.set_mark("read")
 
     def ocr_box_groups(self, image: Path) -> Iterable[OCRGroup]:
         if self.ocr_json_file.exists():
@@ -431,7 +433,7 @@ class MPath(Path):
     def _mark(self, name: str) -> Path:
         path = self.unextracted
         base = path.stem if is_supported_archive(path) else path.name
-        return path.parent / f"{base}.{name}"
+        return path.parent / f"{base}.{name}.json"
 
 
 def _run_mokuro(run: Callable[..., None], chapter: Path | str) -> None:
