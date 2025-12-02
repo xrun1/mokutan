@@ -1,1 +1,6 @@
-- image width instead of max-width to let zoom past?
+- color title with anki diff
+- checkbox to disable highlighting
+- bubble buttons:
+    - add as pre/suffix to last anki note
+    - select all text
+    - hide and switch to next bubble in group
