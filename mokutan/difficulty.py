@@ -22,7 +22,7 @@ from cihai.core import Cihai
 from fastapi import APIRouter, Request, Response, status
 from fastapi.datastructures import URL
 
-from mangaread2.utils import DATA_DIR
+from mokutan.utils import DATA_DIR
 
 from . import misc
 from .utils import CACHE_DIR, ReferrerRedirect, log

@@ -23,7 +23,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from natsort import natsorted
 
-from mangaread2 import difficulty, io
+from mokutan import difficulty, io
 
 from . import DISPLAY_NAME, NAME
 from .io import EXTRACT_DIR, MPath

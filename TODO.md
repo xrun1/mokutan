@@ -1,4 +1,3 @@
-- color title with anki diff
 - checkbox to disable highlighting
 - bubble buttons:
     - add as pre/suffix to last anki note

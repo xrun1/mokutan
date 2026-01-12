@@ -1,5 +1,5 @@
 [project]
-name = "mangaread2"
+name = "mokutan"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
@@ -34,7 +34,7 @@ requires = ["setuptools >= 45", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
-mangaread2 = "mangaread2.__main__:run"
+mokutan = "mokutan.__main__:run"
 
 [tool.basedpyright]
 pythonVersion = "3.12"

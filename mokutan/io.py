@@ -25,7 +25,7 @@ from fastapi.datastructures import URL
 from natsort import natsorted
 from PIL import Image
 
-from mangaread2.difficulty import ANKI, Difficulty
+from mokutan.difficulty import ANKI, Difficulty
 
 from .utils import (
     CACHE_DIR,
