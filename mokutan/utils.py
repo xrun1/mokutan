@@ -61,10 +61,10 @@ def catch_log_exceptions[**P, T](fn: Callable[P, T]) -> Callable[P, T]:
 
 
 def is_supported_archive(path: Path) -> bool:
-    return path.is_file() and (mimetypes.guess_type(path)[0] or "") in {
+    return (mimetypes.guess_type(path)[0] or "") in {
         "image/cbr",
         "application/x-zip-compressed",
-    }
+    } and path.is_file()
 
 
 def is_web_image(path: Path | str) -> bool:
