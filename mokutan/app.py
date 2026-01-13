@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import subprocess
 from abc import ABC
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -94,7 +95,16 @@ class WindowsDrives(Page):
 
     @property
     def drives(self) -> list[MPath]:
-        return list(map(MPath, os.listdrives()))
+        mapped_drives = subprocess.check_output(
+            "net use", text=True, creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        offline_drives = set()  # accessing those cause long hanging
+
+        for ln in mapped_drives.splitlines():
+            if ln.startswith(("Disconnected", "Unavailable", "Reconnecting")):
+                offline_drives.add(ln.split()[1] + "\\")
+
+        return [MPath(d) for d in os.listdrives() if d not in offline_drives]
 
 
 @asynccontextmanager
