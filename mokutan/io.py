@@ -275,7 +275,7 @@ class MPath(Path):
 
     def url(self, **params: Any) -> URL:
         # use .absolute() or first \ gets mangled on windows sometimes somehow
-        base = "/" + str(self.absolute().as_posix())
+        base = "/" + str(self.absolute().as_posix()).removeprefix("/")
         return URL(base).include_query_params(**params)
 
     def previous_chapter(self, sort: str = "") -> Self | None:
