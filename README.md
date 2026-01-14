@@ -4,7 +4,7 @@ An unified, opinionated web interface to OCR Japanese manga with
 [mokuro](https://github.com/kha-white/mokuro/) and read with
 [Yomitan](https://yomitan.wiki/).
 
-![Screenshot](./screenshots/home.jpg)
+![Screenshot](./.screenshots/home.jpg)
 
 
 https://github.com/user-attachments/assets/b5e2feb8-6c5f-499b-b9e6-eca54c54f454
@@ -58,7 +58,7 @@ mokutan is designed to be simple in both its implementation and daily usage:
 - Special logic to split text bubbles more aggressively.
   Example with the same panels, rendered in Mokuro Reader (left, jumbled text)
   vs mokutan (right, matches real layout):
-  ![Comparison](./screenshots/bubbles.jpg)
+  ![Comparison](./.screenshots/bubbles.jpg)
 
 
 ## Installation
@@ -186,7 +186,7 @@ body {
 
 Here's your personal graph, updated every 24 hours:
 
-![Scientific data](./screenshots/graph.jpg)
+![Scientific data](./.screenshots/graph.jpg)
 
 (Read more)
 
