@@ -141,7 +141,7 @@ list(map(mount, ["style"]))
 async def thumbnail(path: Path | str, recurse: int = 2) -> Response:
     path = MPath(path)
 
-    if path.is_nt_drive:
+    if path.is_root_dir:
         return Response(status_code=404)
 
     if is_web_image(path):

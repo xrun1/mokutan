@@ -147,8 +147,10 @@ class MPath(Path):
         return self.name or str(self).rstrip("/\\")
 
     @property
-    def is_nt_drive(self) -> bool:
-        return os.name == "nt" and self.is_absolute() and len(self.parts) == 1
+    def is_root_dir(self) -> bool:
+        if os.name == "nt":
+            return self.is_absolute() and len(self.parts) == 1
+        return str(self) == "/"
 
     @property
     def as_anchor(self) -> str:
@@ -421,7 +423,7 @@ class MPath(Path):
         return ns(lambda _: -1)
 
     def _sibling_chapters(self, sort: str = "") -> tuple[list[Self], int]:
-        if self.unextracted.is_nt_drive:
+        if self.unextracted.is_root_dir:
             return ([], -1)
         chapters = self._sort(sort, (
             p for p in self.unextracted.parent.iterdir()

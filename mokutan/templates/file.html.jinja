@@ -3,7 +3,7 @@
 <a id="{{path.as_anchor}}" href="{{href}}">
     <img
         class="file-thumbnail"
-        alt="{{'🖴' if path.is_nt_drive else '🗀' if path.is_dir() else '🗎'}}"
+        alt="{{'🖴' if path.is_root_dir else '🗀' if path.is_dir() else '🗎'}}"
         src="/thumbnail{{path.url()}}"
         loading=lazy
     >
