@@ -139,7 +139,7 @@ list(map(mount, ["style"]))
 
 @app.get("/thumbnail/{path:path}")
 async def thumbnail(path: Path | str, recurse: int = 2) -> Response:
-    path = MPath(path)
+    path = MPath.from_route(path)
 
     if path.is_root_dir:
         return Response(status_code=404)
@@ -181,13 +181,13 @@ async def thumbnail(path: Path | str, recurse: int = 2) -> Response:
 
 @app.get("/mark/read/{path:path}")
 async def mark_read(request: Request, path: Path) -> Response:
-    MPath(path).mark_read()
+    MPath.from_route(path).mark_read()
     return ReferrerRedirect(request)
 
 
 @app.get("/mark/unread/{path:path}")
 async def mark_unread(request: Request, path: Path) -> Response:
-    MPath(path).mark_unread()
+    MPath(fix_unix_path(path)).mark_unread()
     return ReferrerRedirect(request)
 
 
@@ -198,14 +198,11 @@ async def browse(
     if os.name == "nt" and str(path) in {"/", r"\\", ""}:
         return WindowsDrives(request).response
 
-    if os.name != "nt":
-        path = f"/{path}"
-
-    path = await MPath(path or "/").extracted
+    path = await MPath.from_route(path).extracted
 
     if path.is_file():
         return FileResponse(path)
     if path.is_dir():
-        return Browse(request, MPath(path), sort).response
+        return Browse(request, path, sort).response
 
     return Response(status_code=404)

@@ -87,6 +87,12 @@ class OCRGroup(UserList[OCRBox]):
 
 
 class MPath(Path):
+    @classmethod
+    def from_route(cls, path: str | Path) -> Self:
+        if os.name == "nt":
+            return cls(path)
+        return cls("/" + str(path).removeprefix("/"))
+
     @property
     async def extracted(self) -> Self:
         if self in IGNORED_ARCHIVES or not (archive := next((
@@ -521,7 +527,7 @@ async def start_ocr(
     prioritize: bool = False,
     sort: str = "",
 ) -> Response:
-    job = MPath(chapter).unextracted
+    job = MPath.from_route(chapter).unextracted
     jobs = [job, *job.next_chapters(sort)] if keep_going else [job]
     jobs = flatten(f.glob("**") if recursive else [f] for f in jobs)
     jobs = [
@@ -538,7 +544,7 @@ async def start_ocr(
 async def cancel_ocr(
     request: Request, chapter: Path | str, recursive: bool = False,
 ) -> Response:
-    job = MPath(chapter).unextracted
+    job = MPath.from_route(chapter).unextracted
     OCR_QUEUE.remove(job)
 
     if recursive:
@@ -571,7 +577,7 @@ async def move_ocr_job_position_end(
 async def move_ocr_job_position(
     request: Request, chapter: Path | str, to: int,
 ) -> Response:
-    job = MPath(chapter).unextracted
+    job = MPath.from_route(chapter).unextracted
     del OCR_QUEUE[OCR_QUEUE.index(job)]
     OCR_QUEUE.insert(to, job)
     return ReferrerRedirect(request)
@@ -581,7 +587,7 @@ async def move_ocr_job_position(
 async def shift_ocr_job_position(
     request: Request, chapter: Path | str, by: int,
 ) -> Response:
-    job = MPath(chapter).unextracted
+    job = MPath.from_route(chapter).unextracted
     del OCR_QUEUE[index := OCR_QUEUE.index(job)]
     OCR_QUEUE.insert(index + by, job)
     return ReferrerRedirect(request)
