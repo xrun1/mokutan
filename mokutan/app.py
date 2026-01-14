@@ -198,6 +198,9 @@ async def browse(
     if os.name == "nt" and str(path) in {"/", r"\\", ""}:
         return WindowsDrives(request).response
 
+    if os.name != "nt":
+        path = f"/{path}"
+
     path = await MPath(path or "/").extracted
 
     if path.is_file():
