@@ -6,6 +6,12 @@ An unified, opinionated web interface to OCR Japanese manga with
 
 ![Screenshot](./screenshots/home.jpg)
 
+
+https://github.com/user-attachments/assets/b5e2feb8-6c5f-499b-b9e6-eca54c54f454
+
+
+
+
 Made as an alternative to the combination of
 mokuro CLI and [Mokuro Reader](https://github.com/ZXY101/mokuro-reader),
 mokutan is designed to be simple in both its implementation and daily usage:
