@@ -144,6 +144,8 @@ class MPath(Path):
         path = str(self).removeprefix(str(EXTRACT_DIR) + os.sep)
         if os.name == "nt":
             path = path[0] + ":" + path[1:]
+        else:
+            path = "/" + path.removeprefix("/")
 
         return type(self)(path) if Path(path).exists() else self
 
