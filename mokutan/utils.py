@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import functools
 import logging
-import mimetypes
 from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
 
@@ -61,22 +60,11 @@ def catch_log_exceptions[**P, T](fn: Callable[P, T]) -> Callable[P, T]:
 
 
 def is_supported_archive(path: Path) -> bool:
-    return (mimetypes.guess_type(path)[0] or "") in {
-        "image/cbr",
-        "application/x-zip-compressed",
-    } and path.is_file()
+    return path.suffix in {".cbz", ".zip"} and path.is_file()
 
 
 def is_web_image(path: Path | str) -> bool:
-    return (mimetypes.guess_type(path)[0] or "") in {
-        "image/apng",
-        "image/avif",
-        "image/bmp",
-        "image/gif",
-        "image/vnd.microsoft.icon",
-        "image/jpeg",
-        "image/png",
-        "image/svg+xml",
-        "image/tiff",
-        "image/webp",
+    return Path(path).suffix in {
+        ".avif", ".bmp", ".gif", ".ico", ".jpg", ".jpeg",
+        ".png", ".svg", ".tif", ".tiff", ".webp",
     }
