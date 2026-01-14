@@ -100,15 +100,15 @@ class MPath(Path):
         ), None)):
             return self
 
-        def fix_end(path: Self) -> Self:
+        def fix(path: Self) -> Self:
             if os.name == "nt":
                 assert path.is_absolute()
                 return type(self)(str(path).replace(":", "", 1))
-            return path
+            return type(self)(str(path).removeprefix("/"))
 
-        if (base := EXTRACT_DIR / fix_end(archive)).exists():
+        if (base := EXTRACT_DIR / fix(archive)).exists():
             LAST_ARCHIVE_ACCESSES[archive] = datetime.now()
-            return type(self)(EXTRACT_DIR) / fix_end(self)
+            return type(self)(EXTRACT_DIR) / fix(self)
 
         async with LOCKS[base]:
             with ZipFile(archive) as arc:
@@ -134,7 +134,7 @@ class MPath(Path):
                 new.rename(base)
 
         LAST_ARCHIVE_ACCESSES[archive] = datetime.now()
-        return type(self)(EXTRACT_DIR) / fix_end(self)
+        return type(self)(EXTRACT_DIR) / fix(self)
 
     @property
     def unextracted(self) -> Self:
