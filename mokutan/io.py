@@ -70,7 +70,6 @@ class OCRBox:
 
 class OCRGroup(UserList[OCRBox]):
     def has_overlap(self, threshold: float) -> bool:
-        print()
         for a, b in combinations(self, 2):
             left = max(a.x, b.x)
             right = min(a.x + a.w, b.x + b.w)
