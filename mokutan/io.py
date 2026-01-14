@@ -29,7 +29,6 @@ from mokutan.difficulty import ANKI, Difficulty
 
 from .utils import (
     CACHE_DIR,
-    DATA_DIR,
     ReferrerRedirect,
     is_supported_archive,
     is_web_image,
