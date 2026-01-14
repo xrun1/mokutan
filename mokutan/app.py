@@ -187,7 +187,7 @@ async def mark_read(request: Request, path: Path) -> Response:
 
 @app.get("/mark/unread/{path:path}")
 async def mark_unread(request: Request, path: Path) -> Response:
-    MPath(fix_unix_path(path)).mark_unread()
+    MPath.from_route(path).mark_unread()
     return ReferrerRedirect(request)
 
 
