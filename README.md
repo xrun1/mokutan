@@ -114,12 +114,6 @@ will start mokutan on login automatically.
   the way things are parsed can differ with what Yomitan detects.
   See colors as hints only.
 
-- When OCR makes up text boxes that extend past the actual page's boundaries
-  (common on cover pages with large stylized characters), hovering those boxes
-  will make additional scrollbars appear for the image. If you somehow mess up
-  the inner scroll position, hovering on one of those boxes again will bring
-  back the additional scrollbars.
-
 - Slow loading of folders with hundreds of manga inside: difficulty calculation
   does a lot of disk IO and number-crunching. The results are cached,
   but currently the logic isn't very smart and thus making changes to your

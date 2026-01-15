@@ -33,12 +33,19 @@
         {% set ovl = "has-overlap" if group.has_overlap(0) else "" %}
         <div class="ocr-group {{ovl}}" lang="ja">
         {% for box in group %}
+            {# Match .full-dots letter-spacing CSS #}
+            {% set ls = ([0, box.fullwidth_dots - 1] | max) * 0.15 ~ "em" %}
+
+            {% set font_size = "min(" ~
+                box.font_size ~ "px, " ~
+                "calc(" ~ box.max_fit_font_px ~ "px + " ~ ls ~ "), " ~
+                box.font_size * 100 / box.image_w ~ "vw, " ~
+                "calc(" ~ box.max_fit_font_px * 100 / box.image_w ~
+                    "vw + " ~ ls ~ ")"
+            ")" %}
+
             <div class="ocr-box-pair">
                 {% for kind in ["bg", "fg"] %}
-                    {% set font_size = "min(" ~
-                        box.font_size ~ "px," ~
-                        box.font_size * 100 / box.image_w ~ "vw" ~
-                    ")" %}
                     <pre class=ocr-box-{{kind}} style="
                         left: {{box.x * 100}}%;
                         top: {{box.y * 100}}%;

@@ -52,7 +52,8 @@ LAST_ARCHIVE_ACCESSES: dict[Path, datetime] = {}
 LOCKS: defaultdict[Path, asyncio.Lock] = defaultdict(asyncio.Lock)
 pause_queue: bool = False
 
-FULLWIDTH_DOTS_RE = re.compile(r"(．+)")
+FULLWIDTH_DOT = "．"  # noqa: RUF001
+FULLWIDTH_DOTS_RE = re.compile(rf"({FULLWIDTH_DOT}+)")
 
 
 @dataclass(slots=True)
@@ -66,6 +67,17 @@ class OCRBox:
     vertical: bool = False
     font_size: int = 0
     lines: list[str] = field(default_factory=list)
+    raw_lines: list[str] = field(default_factory=list)
+
+    @property
+    def max_fit_font_px(self) -> float:
+        if self.vertical:
+            return self.h * self.image_h / len(max(self.raw_lines, key=len))
+        return self.w * self.image_w / len(max(self.raw_lines, key=len))
+
+    @property
+    def fullwidth_dots(self) -> int:
+        return "".join(self.raw_lines).count(FULLWIDTH_DOT)
 
 
 class OCRGroup(UserList[OCRBox]):
@@ -354,6 +366,7 @@ class MPath(Path):
             # Split OCR-detected boxes that are probably multiple
             # multiple actual boxes in the image based on text spacing
             for line, coord in zip(lines, coords, strict=True):
+                raw_line = line
                 start, _top_right, end, _bot_left = starmap(Point, coord)
 
                 if block["vertical"]:
@@ -391,6 +404,7 @@ class MPath(Path):
                         r"<span class=full-dots>\1</span>", line,
                     )
 
+                box.raw_lines.append(raw_line)
                 box.lines.append(line)
                 box.x = min(box.x, start.x)
                 box.y = min(box.y, start.y)
