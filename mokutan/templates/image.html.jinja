@@ -48,7 +48,7 @@
                         {% else %}
                             min-width: {{box.w * 100}}%;
                             min-height: {{box.h * 100}}%;
-                            outline-width: calc({{font_size}} / 3);
+                            outline-width: min(1rem, calc({{font_size}} / 3));
                         {% endif %}
                         font-size: {{font_size}};
                         {% if box.vertical %}
