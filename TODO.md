@@ -1,3 +1,7 @@
+- Put folders and archives first
+- Hide hidden files
+- One .mokutan file for all marks
+
 - checkbox to disable highlighting
 - bubble buttons:
     - add as pre/suffix to last anki note

@@ -114,11 +114,6 @@ will start mokutan on login automatically.
   the way things are parsed can differ with what Yomitan detects.
   See colors as hints only.
 
-- Slow loading of folders with hundreds of manga inside: difficulty calculation
-  does a lot of disk IO and number-crunching. The results are cached,
-  but currently the logic isn't very smart and thus making changes to your
-  decks in Anki will reset the cache.
-
 
 ## How do I...
 

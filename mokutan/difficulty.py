@@ -28,9 +28,11 @@ from . import misc
 from .utils import CACHE_DIR, ReferrerRedirect, log
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Sequence
 
     from fugashi.fugashi import Node as FugashiNode
+
+type FugashiNodeLike = FugashiNode | CachedFugashiNode
 
 jp_parser: fugashi.Tagger | None = None  # dict may not be downloaded yet
 kanji_parser: Cihai | None = None  # same for DB
@@ -144,8 +146,16 @@ class Anki:
 
         learned_before = self.learned
         self.intervals = intervals
+
         if learned_before != self.learned:
-            Difficulty.cache.clear()
+            ivs = {t: i.total_seconds() for t, i in intervals.items()}.items()
+            for *_, diff in Difficulty.cache.values():
+                diff_ivs = {
+                    term: iv for term, iv in diff.anki_intervals.items()
+                    if iv or term in intervals
+                }.items()
+                if not diff_ivs <= ivs:  # <= here checks if A is a subset of B
+                    diff.anki_changed = True
 
         self.loaded = True
         return self
@@ -219,11 +229,30 @@ ANKI = Anki.restore_saved()
 
 
 @dataclass(slots=True)
+class CachedFugashiNode:  # fugashi's Node class can't be dumped to json
+    surface: str
+    orthBase: str  # noqa: N815
+    lemma: str
+    pos1: str
+
+    @property
+    def feature(self) -> Self:
+        return self
+
+    @classmethod
+    def from_node(cls, node: FugashiNodeLike) -> Self:
+        feat = node.feature
+        return cls(node.surface, feat.orthBase, feat.lemma, feat.pos1)
+
+
+@dataclass(slots=True)
 class Difficulty:
     cache: ClassVar[dict[Path, tuple[float, int, Self]]] = {}
     cache_changed: ClassVar[bool] = False
     cache_path: ClassVar[Path] = CACHE_DIR / "Difficulty.json.gz"
+    cache_version: ClassVar[int] = 2
 
+    pages: Sequence[Sequence[FugashiNodeLike]] = field(default_factory=list)
     page_scores: list[float] = field(default_factory=list)
     unique_terms: int = 0
     page_term_counts: list[int] = field(default_factory=list)
@@ -231,6 +260,8 @@ class Difficulty:
     anki_learned: int = 0
     anki_mature: int = 0
     anki_score_decrease: float = 0
+    anki_intervals: dict[str, float] = field(default_factory=dict)
+    anki_changed: bool = False
 
     def __bool__(self) -> bool:
         return bool(self.score)
@@ -261,32 +292,43 @@ class Difficulty:
             return cls()
 
         fs_stats = ocr_json.stat()
+        cached: Self | None = None
 
         if ocr_json in cls.cache:
-            mtime, size, diff = cls.cache[ocr_json]
-            if mtime == fs_stats.st_mtime and size == fs_stats.st_size:
-                return diff
+            mtime, size, cached = cls.cache[ocr_json]
+            if not cached.anki_changed:
+                if mtime == fs_stats.st_mtime and size == fs_stats.st_size:
+                    return cached
 
         ocr_data = json.load(ocr_json.open(encoding="utf-8"))
-        pages_text = [
-            "\n\n".join("\n".join(box["lines"]) for box in page["blocks"])
-            for page in ocr_data["pages"]
-        ]
 
-        if not "".join(pages_text).strip():
-            cls.cache[ocr_json] = (fs_stats.st_mtime, fs_stats.st_size, cls())
-            cls.cache_changed = True
-            return cls.cache[ocr_json][2]
+        if cached:
+            log.info("Updating cached difficulty for %s", ocr_json)
+            pages = cached.pages
+        else:
+            log.info("Calculating difficulty for %s", ocr_json)
+            pages_text = [
+                "\n\n".join("\n".join(box["lines"]) for box in page["blocks"])
+                for page in ocr_data["pages"]
+            ]
 
-        pages = [jp_parser(p) for p in pages_text]
+            if not "".join(pages_text).strip():
+                cls.cache[ocr_json] = \
+                    (fs_stats.st_mtime, fs_stats.st_size, cls())
+                cls.cache_changed = True
+                return cls.cache[ocr_json][2]
+
+            pages = [jp_parser(p) for p in pages_text]
+
         dedup_counts = Counter(
             term.feature.orthBase for page in pages for term in page
             if term.feature.orthBase
         )
         intervals: dict[str, timedelta] = {}
+        anki_not_found: set[str] = set()
         anki_bonuses: list[float] = []
 
-        def get_score(term: FugashiNode, unique_vocab: set[str]) -> float:
+        def get_score(term: FugashiNodeLike, unique_vocab: set[str]) -> float:
             feat = term.feature
 
             def get(consider_rarity: bool = True) -> float:
@@ -313,16 +355,19 @@ class Difficulty:
                 score = get(consider_rarity=False)
                 score -= score * 0.9 * min(1, iv / ANKI.MATURE_THRESHOLD)
                 anki_bonuses.append(old_score - score)
+            else:
+                anki_not_found.add(feat.orthBase)
 
             return score
 
-        def page_score(page: list[FugashiNode]) -> float:
+        def page_score(page: list[FugashiNodeLike]) -> float:
             unique_vocab = {
                 str(t.feature.orthBase) for t in page if t.feature.orthBase
             }
             return sum(get_score(term, unique_vocab) for term in page)
 
         diff = cls(
+            pages=[[CachedFugashiNode.from_node(n) for n in p] for p in pages],
             page_scores=[page_score(p) for p in pages],
             unique_terms=len(dedup_counts),
             page_term_counts=(ptc := [len(p) for p in pages]),
@@ -332,10 +377,20 @@ class Difficulty:
                 iv for iv in intervals.values() if iv >= ANKI.MATURE_THRESHOLD
             ]),
             anki_score_decrease=sum(anki_bonuses) / len(pages),
+            anki_intervals={
+                term: iv.total_seconds() for term, iv in intervals.items()
+            } | dict.fromkeys(anki_not_found, 0),
         )
         cls.cache[ocr_json] = (fs_stats.st_mtime, fs_stats.st_size, diff)
         cls.cache_changed = True
         return diff
+
+    @classmethod
+    def from_cached(cls, **kwargs: Any) -> Self:
+        kwargs["pages"] = [
+            [CachedFugashiNode(**kws) for kws in p] for p in kwargs["pages"]
+        ]
+        return cls(**kwargs)
 
     @classmethod
     def load_cache(cls) -> bool:
@@ -343,10 +398,14 @@ class Difficulty:
             return False
 
         try:
+            data = json.loads(gz.decompress(cls.cache_path.read_bytes()))
+            if data.pop("__version__") != cls.cache_version:
+                log.warning("Difficulty cache version mismatch, igonoring it")
+                return False
+
             cls.cache |= {
-                Path(path): (mtime, size, cls(**diff))
-                for path, (mtime, size, diff) in
-                json.loads(gz.decompress(cls.cache_path.read_bytes())).items()
+                Path(path): (mtime, size, cls.from_cached(**diff))
+                for path, (mtime, size, diff) in data.items()
             }
         except Exception:  # noqa: BLE001
             log.exception("Failed reading %s", cls.cache_path)
@@ -359,13 +418,17 @@ class Difficulty:
         if not cls.cache_changed:
             return False
 
-        cls.cache_path.parent.mkdir(parents=True, exist_ok=True)
-        data = json.dumps({
-            str(path): [mtime, size, asdict(diff)]
-            for path, (mtime, size, diff) in cls.cache.items()
-        }, ensure_ascii=False).encode()
-        cls.cache_path.write_bytes(gz.compress(data, 3))
-        cls.cache_changed = False
+        try:
+            cls.cache_path.parent.mkdir(parents=True, exist_ok=True)
+            data = json.dumps({"__version__": cls.cache_version} | {
+                str(path): [mtime, size, asdict(diff)]
+                for path, (mtime, size, diff) in cls.cache.items()
+            }, ensure_ascii=False).encode()
+            cls.cache_path.write_bytes(gz.compress(data, 3))
+            cls.cache_changed = False
+        except Exception:  # noqa: BLE001
+            log.exception("Failed saving %s", cls.cache_path)
+            return False
         return True
 
     @classmethod
