@@ -16,8 +16,7 @@ from . import NAME
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
 
-log = logging.getLogger(NAME)
-log.setLevel(logging.INFO)
+log = logging.getLogger("uvicorn")
 
 DATA_DIR = Path(appdirs.user_data_dir(NAME, appauthor=False, roaming=True))
 CACHE_DIR = Path(appdirs.user_cache_dir(NAME, appauthor=False))
