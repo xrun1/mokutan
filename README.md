@@ -88,6 +88,15 @@ Creating a shortcut to that executable in
 will start mokutan on login automatically.
 
 
+## Usage
+
+Open the URL shown in the terminal when you start the program,
+by default <http://localhost:2323>.
+
+Note that loading folders with hundreds of manga for the first
+time can take some time due to difficulty calculation.
+
+
 ## Tips
 
 - If you already have manga OCRed by mokuro before
