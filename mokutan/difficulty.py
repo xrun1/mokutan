@@ -360,7 +360,7 @@ class Difficulty:
 
             return score
 
-        def page_score(page: list[FugashiNodeLike]) -> float:
+        def page_score(page: Sequence[FugashiNodeLike]) -> float:
             unique_vocab = {
                 str(t.feature.orthBase) for t in page if t.feature.orthBase
             }
