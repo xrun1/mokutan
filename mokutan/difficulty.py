@@ -499,32 +499,31 @@ def kanji_stroke_count(char: str) -> int | None:
 
 
 def script_difficulty(word: str) -> float:
-    kinds: set[str] = set()
-    scores: list[float] = []
+    has_hira = has_kata = has_kanji = False
+    score = 0
 
     for char in word:
         if is_hiragana(char):
-            kinds.add("hiragana")
-            scores.append(0.3)
+            has_hira = True
+            score += 0.3
         elif is_katakana(char):
-            kinds.add("katakana")
-            scores.append(0.4)
+            has_kata = True
+            score += 0.4
         elif is_kanji(char):
-            kinds.add("kanji")
+            has_kanji = True
             strokes = kanji_stroke_count(char) or AVG_KANJI_STROKES
-            scores.append(max(0.5, 1.5 * (strokes / AVG_KANJI_STROKES)))
+            score += max(0.5, 1.5 * (strokes / AVG_KANJI_STROKES))
 
     factor = len(word) ** 1.2
 
-    if len(kinds) == 1:
-        if kinds == {"kanji"}:
-            factor *= 1.3
-        if kinds == {"hiragana"}:
-            factor *= 0.5
-        if kinds == {"katakana"}:  # probably loanword or SFX
-            factor *= 0.1
+    if has_kanji and not (has_hira or has_kata):
+        factor *= 1.3
+    elif has_hira and not (has_kanji or has_kata):
+        factor *= 0.5
+    elif has_kata and not (has_kanji or has_hira):  # probably loanword or SFX
+        factor *= 0.1
 
-    return sum(scores) / (len(word) or 1) * factor
+    return score / (len(word) or 1) * factor
 
 
 @anki_router.get("/load")
