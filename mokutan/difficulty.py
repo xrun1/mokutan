@@ -400,7 +400,7 @@ class Difficulty:
         try:
             data = json.loads(gz.decompress(cls.cache_path.read_bytes()))
             if data.pop("__version__") != cls.cache_version:
-                log.warning("Difficulty cache version mismatch, igonoring it")
+                log.warning("Difficulty cache version mismatch, ignoring it")
                 return False
 
             cls.cache |= {
