@@ -499,27 +499,32 @@ def kanji_stroke_count(char: str) -> int | None:
 
 
 def script_difficulty(word: str) -> float:
-    def score_char(char: str) -> float:
-        if is_hiragana(char):
-            return 0.3
-        if is_katakana(char):
-            return 0.4
-        if is_kanji(char):
-            strokes = kanji_stroke_count(char) or AVG_KANJI_STROKES
-            return max(0.5, 1.5 * (strokes / AVG_KANJI_STROKES))
-        return 0
+    kinds: set[str] = set()
+    scores: list[float] = []
 
-    scores = [score_char(char) for char in word]
+    for char in word:
+        if is_hiragana(char):
+            kinds.add("hiragana")
+            scores.append(0.3)
+        elif is_katakana(char):
+            kinds.add("katakana")
+            scores.append(0.4)
+        elif is_kanji(char):
+            kinds.add("kanji")
+            strokes = kanji_stroke_count(char) or AVG_KANJI_STROKES
+            scores.append(max(0.5, 1.5 * (strokes / AVG_KANJI_STROKES)))
+
     factor = len(word) ** 1.2
 
-    if set(scores) == {1}:  # all kanji
-        factor *= 1.3
-    elif set(scores) == {0.3}:  # all hiragana
-        factor *= 0.5
-    elif set(scores) == {0.4}:  # all katakana, probably loanword or SFX
-        factor *= 0.1
+    if len(kinds) == 1:
+        if kinds == {"kanji"}:
+            factor *= 1.3
+        if kinds == {"hiragana"}:
+            factor *= 0.5
+        if kinds == {"katakana"}:  # probably loanword or SFX
+            factor *= 0.1
 
-    return sum(scores) / len(word) * factor
+    return sum(scores) / (len(word) or 1) * factor
 
 
 @anki_router.get("/load")
