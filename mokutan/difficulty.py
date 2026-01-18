@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
 jp_parser: fugashi.Tagger | None = None  # dict may not be downloaded yet
 kanji_parser: Cihai | None = None  # same for DB
-jp_freqs: dict[str | tuple[str, str], int] = {}
+jp_freqs: dict[str | tuple[str, str], set[int]] = {}
 
 AVG_KANJI_STROKES = 11
 NON_CORE_POS1_DIFFICULTY_FACTORS = {
@@ -252,7 +252,7 @@ class Difficulty:
     cache: ClassVar[dict[Path, tuple[float, int, Self]]] = {}
     cache_changed: ClassVar[bool] = False
     cache_path: ClassVar[Path] = CACHE_DIR / "Difficulty.json.gz"
-    cache_version: ClassVar[int] = 6
+    cache_version: ClassVar[int] = 7
 
     pages: list[list[list[CachedFugashiNode]]] = field(default_factory=list)
     page_scores: list[float] = field(default_factory=list)
@@ -346,14 +346,16 @@ class Difficulty:
             feat = term.feature
 
             def get(consider_rarity: bool = True) -> float:
-                nonlocal soup_combo, last_script
-                minimum = 20_000
-                base = minimum + int(consider_rarity) * min(minimum, (
+                freqs = (
                     jp_freqs.get((feat.lemma, feat.orthBase)) or
                     jp_freqs.get(feat.orthBase) or
                     jp_freqs.get(feat.lemma) or
-                    math.inf
-                ))
+                    set()
+                )
+                default = 20_000
+                base = default
+                if consider_rarity:
+                    base += min(default, min(freqs, default=default))
 
                 script_diff, script = script_difficulty(term.surface)
                 nonlocal soup_combo, last_script
@@ -363,12 +365,22 @@ class Difficulty:
                     soup_combo = 0
                 last_script = script
 
+                if len(freqs) > 1:
+                    sfreqs = sorted(freqs)
+                    best = sfreqs[0]
+                    homophone_ambiguity = 1.5 ** sum(
+                        (best / (f or 1)) ** 0.75 for f in sfreqs[1:]
+                    )
+                else:
+                    homophone_ambiguity = 1
+
                 count = max(1, dedup_counts[feat.orthBase])
                 return (
                     max(base / 10, base - base / 10 * (count - 1) ** 1.5)
                     * NON_CORE_POS1_DIFFICULTY_FACTORS.get(feat.pos1, 1)
                     * script_diff
                     * (soup_combo + 1)
+                    * homophone_ambiguity
                     * len(sentence) ** 1.15
                     * len(page) ** 1.075
                 ) / 375_000
@@ -496,8 +508,7 @@ def load_dict_data() -> None:
         else:
             k, v = (term, info["frequency"]["value"])
 
-        if v < out.get(k, math.inf):
-            out[k] = v
+        out.setdefault(k, set()).add(v)
 
     jp_freqs.update(out)
 
