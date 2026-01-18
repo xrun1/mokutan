@@ -401,9 +401,10 @@ class Difficulty:
     @classmethod
     def from_cached(cls, **kwargs: Any) -> Self:
         pages = [
-            [CachedFugashiNode(**node_kws) for node_kws in sentence]
-            for page in kwargs.pop("pages")
-            for sentence in page
+            [
+                [CachedFugashiNode(**node_kws) for node_kws in sentence]
+                for sentence in page
+            ] for page in kwargs.pop("pages")
         ]
         return cls(pages=pages, **kwargs)
 
