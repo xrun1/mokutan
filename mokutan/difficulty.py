@@ -300,13 +300,12 @@ class Difficulty:
                 if mtime == fs_stats.st_mtime and size == fs_stats.st_size:
                     return cached
 
-        ocr_data = json.load(ocr_json.open(encoding="utf-8"))
-
         if cached:
             log.info("Updating cached difficulty for %s", ocr_json)
             pages = cached.pages
         else:
             log.info("Calculating difficulty for %s", ocr_json)
+            ocr_data = json.load(ocr_json.open(encoding="utf-8"))
             pages_text = [
                 "\n\n".join("\n".join(box["lines"]) for box in page["blocks"])
                 for page in ocr_data["pages"]
