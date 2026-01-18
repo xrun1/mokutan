@@ -366,6 +366,9 @@ class MPath(Path):
             # Split OCR-detected boxes that are probably multiple
             # multiple actual boxes in the image based on text spacing
             for line, coord in zip(lines, coords, strict=True):
+                if not line.strip():
+                    continue
+
                 raw_line = line
                 start, _top_right, end, _bot_left = starmap(Point, coord)
 
