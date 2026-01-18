@@ -337,7 +337,7 @@ class Difficulty:
         anki_not_found: set[str] = set()
         anki_bonuses: list[float] = []
 
-        def get_score(
+        def term_score(
             page: list[list[CachedFugashiNode]],
             sentence: list[CachedFugashiNode],
             term: CachedFugashiNode,
@@ -376,7 +376,7 @@ class Difficulty:
 
         def page_score(page: list[list[CachedFugashiNode]]) -> float:
             return sum(
-                get_score(page, sentence, term)
+                term_score(page, sentence, term)
                 for sentence in page
                 for term in sentence
             )
