@@ -9,6 +9,7 @@ import re
 from collections import Counter
 from dataclasses import asdict, dataclass, field
 from datetime import timedelta
+from enum import IntFlag, auto
 from functools import lru_cache
 from importlib import resources
 from io import BytesIO
@@ -29,9 +30,7 @@ from . import misc
 from .utils import CACHE_DIR, ReferrerRedirect, flatten, log
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
-
-    from fugashi.fugashi import Node as FugashiNode
+    from collections.abc import Iterable
 
 
 jp_parser: fugashi.Tagger | None = None  # dict may not be downloaded yet
@@ -253,7 +252,7 @@ class Difficulty:
     cache: ClassVar[dict[Path, tuple[float, int, Self]]] = {}
     cache_changed: ClassVar[bool] = False
     cache_path: ClassVar[Path] = CACHE_DIR / "Difficulty.json.gz"
-    cache_version: ClassVar[int] = 5
+    cache_version: ClassVar[int] = 6
 
     pages: list[list[list[CachedFugashiNode]]] = field(default_factory=list)
     page_scores: list[float] = field(default_factory=list)
@@ -336,6 +335,8 @@ class Difficulty:
         intervals: dict[str, timedelta] = {}
         anki_not_found: set[str] = set()
         anki_bonuses: list[float] = []
+        last_script = Script(0)
+        soup_combo = 0
 
         def term_score(
             page: list[list[CachedFugashiNode]],
@@ -345,6 +346,7 @@ class Difficulty:
             feat = term.feature
 
             def get(consider_rarity: bool = True) -> float:
+                nonlocal soup_combo, last_script
                 minimum = 20_000
                 base = minimum + int(consider_rarity) * min(minimum, (
                     jp_freqs.get((feat.lemma, feat.orthBase)) or
@@ -352,14 +354,24 @@ class Difficulty:
                     jp_freqs.get(feat.lemma) or
                     math.inf
                 ))
+
+                script_diff, script = script_difficulty(term.surface)
+                nonlocal soup_combo, last_script
+                if script == last_script and script.bit_count() == 1:
+                    soup_combo += 1
+                else:
+                    soup_combo = 0
+                last_script = script
+
                 count = max(1, dedup_counts[feat.orthBase])
                 return (
                     max(base / 10, base - base / 10 * (count - 1) ** 1.5)
                     * NON_CORE_POS1_DIFFICULTY_FACTORS.get(feat.pos1, 1)
-                    * script_difficulty(term.surface)
+                    * script_diff
+                    * (soup_combo + 1)
                     * len(sentence) ** 1.15
                     * len(page) ** 1.075
-                ) / 250_000
+                ) / 375_000
 
             score = get()
 
@@ -514,32 +526,39 @@ def kanji_stroke_count(char: str) -> int | None:
     return int(k.kTotalStrokes)  # pyright:ignore[reportAttributeAccessIssue]
 
 
-def script_difficulty(word: str) -> float:
-    has_hira = has_kata = has_kanji = False
+class Script(IntFlag):
+    hiragana = auto()
+    katakana = auto()
+    kanji = auto()
+
+
+@lru_cache(8192)
+def script_difficulty(word: str) -> tuple[float, Script]:
+    script = Script(0)
     score = 0
 
     for char in word:
         if is_hiragana(char):
-            has_hira = True
+            script |= Script.hiragana
             score += 0.3
         elif is_katakana(char):
-            has_kata = True
+            script |= Script.katakana
             score += 0.4
         elif is_kanji(char):
-            has_kanji = True
+            script |= Script.kanji
             strokes = kanji_stroke_count(char) or AVG_KANJI_STROKES
             score += max(0.5, 1.5 * (strokes / AVG_KANJI_STROKES))
 
     factor = len(word) ** 1.2
 
-    if has_kanji and not (has_hira or has_kata):
+    if script == Script.kanji:
         factor *= 1.3
-    elif has_hira and not (has_kanji or has_kata):
+    elif script == Script.hiragana:
         factor *= 0.5
-    elif has_kata and not (has_kanji or has_hira):  # probably loanword or SFX
+    elif script == Script.katakana:
         factor *= 0.2
 
-    return score / (len(word) or 1) * factor
+    return (score / (len(word) or 1) * factor, script)
 
 
 @anki_router.get("/load")
