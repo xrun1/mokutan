@@ -34,7 +34,17 @@ mokutan is designed to be simple in both its implementation and daily usage:
 
 - Pause, cancel, or change the priority of existing OCR jobs in the queue
 
-- Estimated difficulty calculation for every OCRed folder
+- Estimated difficulty calculation for every OCRed folder, takes into account:
+  - JPDB word frequency
+  - Word script composition (kanji vs hiragana vs katakana)
+  - Kanji stroke counts
+  - Soup factor (multiple all-kanji or all-kana consecutive words)
+  - Ambiguity caused by homophones close in frequency
+  - How many times the word has appeared in the manga
+  - Word category (particle, prefix/suffix, helper verb, etc.)
+  - Number of words in the sentence
+  - Number of sentences in the page
+  - Presence and maturity in Anki decks if connected
 
 - Take into account words learned in Anki for scores calculation if connected
 
