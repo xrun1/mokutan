@@ -17,6 +17,7 @@
         max-width: 100%;
         border: 1px solid var(--borders);
         user-select: none;
+        pointer-events: none;  /* fix text select not clearing on img click */
         object-fit: contain;
         height: auto;
     }
