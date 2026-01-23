@@ -50,6 +50,9 @@ NON_CORE_POS1_DIFFICULTY_FACTORS = {
     "未知語": 2.0,  # Unknown/error
 }
 
+SMALL_HIRAGANA = frozenset("ぁぃぅぇぉっゃゅょゎゕゖ")
+SMALL_KATAKANA = frozenset("ァィゥェォッャュョヮヵヶ")
+
 sentence_bound = \
     re.compile(r"(?:\n\n|[‥…。！？.!?])+")  # noqa: RUF001
 
@@ -252,7 +255,7 @@ class Difficulty:
     cache: ClassVar[dict[Path, tuple[float, int, Self]]] = {}
     cache_changed: ClassVar[bool] = False
     cache_path: ClassVar[Path] = CACHE_DIR / "Difficulty.json.gz"
-    cache_version: ClassVar[int] = 7
+    cache_version: ClassVar[int] = 8
 
     pages: list[list[list[CachedFugashiNode]]] = field(default_factory=list)
     page_scores: list[float] = field(default_factory=list)
@@ -383,7 +386,7 @@ class Difficulty:
                     * homophone_ambiguity
                     * len(sentence) ** 1.15
                     * len(page) ** 1.075
-                ) / 375_000
+                ) / 550_000
 
             score = get()
 
@@ -551,23 +554,22 @@ def script_difficulty(word: str) -> tuple[float, Script]:
     for char in word:
         if is_hiragana(char):
             script |= Script.hiragana
-            score += 0.3
+            score += 0.2 * (1.5 if char in SMALL_HIRAGANA else 1)
         elif is_katakana(char):
             script |= Script.katakana
-            score += 0.4
+            score += 0.3 * (1.5 if char in SMALL_KATAKANA else 1)
         elif is_kanji(char):
             script |= Script.kanji
             strokes = kanji_stroke_count(char) or AVG_KANJI_STROKES
             score += max(0.5, 1.5 * (strokes / AVG_KANJI_STROKES))
 
-    factor = len(word) ** 1.2
-
-    if script == Script.kanji:
-        factor *= 1.3
-    elif script == Script.hiragana:
-        factor *= 0.5
-    elif script == Script.katakana:
-        factor *= 0.2
+    if script & Script.kanji:
+        factor = len(word) ** 0.9
+        factor += max(0, 2.8 - len(word)) ** 1.1  # make sweet spot = 2-3 chars
+        if script == Script.kanji:
+            factor *= 1.3
+    else:
+        factor = len(word) ** 1.2
 
     return (score / (len(word) or 1) * factor, script)
 
