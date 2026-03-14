@@ -148,3 +148,23 @@
 .ocr-box-fg {
     z-index: 101;
 }
+
+.ocr-group:has(.select-all:hover) {
+    user-select: all;
+}
+
+.ocr-box-actions {
+    position: absolute;
+    top: 100%;
+    line-height: 100%;
+    margin-top: 0.75em;
+    font-size: 0.75em;
+
+    &::selection {
+        color: transparent;
+    }
+
+    & .select-all::after {
+        content: "◌";
+    }
+}

@@ -124,7 +124,8 @@ time can take some time due to difficulty calculation.
   middle clicking on the filename box above it will essentially duplicate the
   current tab with the right scroll position
 
-- Still can't understand a sentence? Select → Right click → Translate
+- Still can't understand a sentence?
+  Click the ◌ button → Right click → Translate
 
 
 ## Known issues

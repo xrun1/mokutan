@@ -61,8 +61,14 @@
                         {% if box.vertical %}
                             writing-mode: vertical-rl;
                         {% endif %}
-                    ">
-                        {{"\n".join(box.lines)}}
+                    ">{%- if kind == "fg" -%}
+                        <div class=ocr-box-actions>
+                            <div
+                                class=select-all
+                                title="Select all text"
+                            ></div>
+                        </div>
+                    {%- endif -%}{{"\n".join(box.lines)}}
                     </pre>
                 {% endfor %}
             </div>
