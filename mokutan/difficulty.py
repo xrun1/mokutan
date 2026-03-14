@@ -42,11 +42,7 @@ NON_CORE_POS1_DIFFICULTY_FACTORS = {
     "補助記号": 0,  # Punctuation, brackets...
     "記号": 0,  # Symbols
     "空白": 0,  # Whitespace
-    "助詞": 0.1,  # Particles
     "感動詞": 0.4,  # Interjections (あっ、えっ...)
-    "接頭辞": 0.8,  # Prefixes
-    "接尾辞": 0.8,  # Suffixes
-    "助動詞": 0.8,  # Helper verbs
     "未知語": 2.0,  # Unknown/error
 }
 
