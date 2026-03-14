@@ -283,6 +283,10 @@ class Difficulty:
         return sum(len(s) for s in sentences) / (len(sentences) or 1)
 
     @property
+    def terms_per_page(self) -> float:
+        return self.sentences_per_page * self.terms_per_sentence
+
+    @property
     def anki_learned_percent(self) -> float:
         return self.anki_learned / (self.unique_terms or 1) * 100
 

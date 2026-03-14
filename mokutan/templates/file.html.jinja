@@ -35,6 +35,7 @@
     {% set d = path.difficulty %}
     {% if d %}
         <span title="
+Words per page: ~{{d.terms_per_page | round(1)}}
 Sentences per page: ~{{d.sentences_per_page | round(1)}}
 Words per sentence: ~{{d.terms_per_sentence | round(1)}}
 Unique words: {{d.unique_terms}}
