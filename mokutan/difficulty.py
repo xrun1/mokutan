@@ -52,7 +52,7 @@ SMALL_KATAKANA = frozenset("ァィゥェォッャュョヮヵヶ")
 sentence_bound = \
     re.compile(r"(?:\n\n|[‥…。！？.!?])+")  # noqa: RUF001
 
-http = httpx.AsyncClient(follow_redirects=True)
+http = httpx.AsyncClient(follow_redirects=True, timeout=600)
 
 anki_router = APIRouter(prefix="/anki")
 
