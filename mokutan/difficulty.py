@@ -252,7 +252,7 @@ class Difficulty:
     cache: ClassVar[dict[Path, tuple[float, int, Self]]] = {}
     cache_changed: ClassVar[bool] = False
     cache_path: ClassVar[Path] = CACHE_DIR / "Difficulty.json.gz"
-    cache_version: ClassVar[int] = 8
+    cache_version: ClassVar[int] = 9
 
     pages: list[list[list[CachedFugashiNode]]] = field(default_factory=list)
     page_scores: list[float] = field(default_factory=list)
