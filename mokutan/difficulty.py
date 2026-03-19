@@ -380,9 +380,7 @@ class Difficulty:
                     * script_diff
                     * (soup_combo + 1)
                     * homophone_ambiguity
-                    * len(sentence) ** 1.15
-                    * len(page) ** 1.075
-                ) / 550_000
+                ) / 10_000
 
             score = get()
 
