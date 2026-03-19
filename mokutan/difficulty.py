@@ -345,6 +345,7 @@ class Difficulty:
         def term_score(
             page: list[list[CachedFugashiNode]],
             sentence: list[CachedFugashiNode],
+            sentence_index: int,
             term: CachedFugashiNode,
         ) -> float:
             feat = term.feature
@@ -387,12 +388,18 @@ class Difficulty:
                     * homophone_ambiguity
                 ) / 10_000
 
+            nonlocal last_script
+            if sentence_index == 0:
+                last_script = Script(0)
+
             score = get()
 
             if (iv := ANKI.intervals.get(feat.orthBase)):
                 intervals[feat.orthBase] = iv
                 old_score = score
+                old_last_script = last_script
                 score = get(consider_rarity=False)
+                last_script = old_last_script
                 score -= score * 0.9 * min(1, iv / ANKI.SUPER_MATURE_THRESHOLD)
                 anki_bonuses.append(old_score - score)
             else:
@@ -402,9 +409,9 @@ class Difficulty:
 
         def page_score(page: list[list[CachedFugashiNode]]) -> float:
             return sum(
-                term_score(page, sentence, term)
+                term_score(page, sentence, i, term)
                 for sentence in page
-                for term in sentence
+                for i, term in enumerate(sentence)
             )
 
         diff = cls(
