@@ -65,6 +65,7 @@ class AnkiPermissionError(AnkiError): ...  # noqa: E302
 class Anki:
     DEFAULT_API: ClassVar[URL] = URL("http://localhost:8765")
     MATURE_THRESHOLD: ClassVar[timedelta] = timedelta(days=21)
+    SUPER_MATURE_THRESHOLD: ClassVar[timedelta] = timedelta(days=21 * 3)
     SAVE_FILE: ClassVar[Path] = DATA_DIR / "Anki.json"
 
     api: URL = field(default_factory=lambda: Anki.DEFAULT_API)
@@ -392,7 +393,7 @@ class Difficulty:
                 intervals[feat.orthBase] = iv
                 old_score = score
                 score = get(consider_rarity=False)
-                score -= score * 0.9 * min(1, iv / ANKI.MATURE_THRESHOLD)
+                score -= score * 0.9 * min(1, iv / ANKI.SUPER_MATURE_THRESHOLD)
                 anki_bonuses.append(old_score - score)
             else:
                 anki_not_found.add(feat.orthBase)
