@@ -396,7 +396,11 @@ class Difficulty:
 
                 count = max(1, dedup_counts[feat.orthBase])
                 return (
-                    max(base / 10, base - base / 10 * (count - 1) ** 1.5)
+                    max(
+                        base / 10,
+                        base - base /
+                            (10 * max(0.1, script_diff)) * (count - 1) ** 1.5,
+                    )
                     * type_factor
                     * script_diff
                     * 1.375 ** soup_combo
