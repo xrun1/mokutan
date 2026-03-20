@@ -361,7 +361,6 @@ class Difficulty:
                 if not type_factor:
                     soup_combo = 0
                     last_script = Script(0)
-                    unknown_kanji_words = 0
                     return 0
 
                 freqs = (
@@ -406,7 +405,7 @@ class Difficulty:
                     * 1.375 ** soup_combo
                     * homophone_ambiguity
                     * 1.01 ** len(box)
-                    * 1.1 ** unknown_kanji_words
+                    * 1.05 ** unknown_kanji_words
                 ) / 10_000
 
             nonlocal soup_combo, last_script, unknown_kanji_words
