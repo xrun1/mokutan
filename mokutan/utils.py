@@ -14,7 +14,7 @@ from natsort import natsorted
 from . import NAME
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable, Iterable, Iterator
 
 log = logging.getLogger("uvicorn")
 
@@ -44,8 +44,9 @@ def get_sorted_dir[T: Path](folder: T) -> list[T]:
     return natsorted(folder.iterdir(), key=lambda p: p.name)
 
 
-def flatten[T](groups: Iterable[Iterable[T]]) -> list[T]:
-    return [item for group in groups for item in group]
+def flatten[T](groups: Iterable[Iterable[T]]) -> Iterator[T]:
+    for group in groups:
+        yield from group
 
 
 def catch_log_exceptions[**P, T](fn: Callable[P, T]) -> Callable[P, T]:

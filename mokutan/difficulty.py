@@ -280,7 +280,7 @@ class Difficulty:
 
     @property
     def terms_per_sentence(self) -> float:
-        sentences = flatten(self.pages)
+        sentences = tuple(flatten(self.pages))
         return sum(len(s) for s in sentences) / (len(sentences) or 1)
 
     @property
