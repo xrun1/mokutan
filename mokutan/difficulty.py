@@ -14,7 +14,7 @@ from functools import lru_cache
 from importlib import resources
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self, override
 from zipfile import ZipFile
 
 import fugashi
@@ -241,6 +241,10 @@ class CachedFugashiNode:  # fugashi's Node class can't be dumped to json
     def feature(self) -> Self:
         return self
 
+    @override
+    def __str__(self) -> str:
+        return self.surface
+
     @classmethod
     def from_node(cls, node: fugashi.Node | CachedFugashiNode) -> Self:
         feat = node.feature
@@ -341,6 +345,7 @@ class Difficulty:
         anki_bonuses: list[float] = []
         last_script = Script(0)
         soup_combo = 0
+        unknown_kanji_words = 0
 
         def term_score(
             box: list[CachedFugashiNode],
@@ -349,13 +354,14 @@ class Difficulty:
         ) -> float:
             feat = term.feature
 
-            def get(consider_rarity: bool = True) -> float:
-                nonlocal soup_combo, last_script
+            def get(anki_known: bool = False) -> float:
+                nonlocal soup_combo, last_script, unknown_kanji_words
 
                 type_factor = POS1_DIFFICULTY_FACTORS.get(feat.pos1, 1)
                 if not type_factor:
                     soup_combo = 0
                     last_script = Script(0)
+                    unknown_kanji_words = 0
                     return 0
 
                 freqs = (
@@ -366,7 +372,7 @@ class Difficulty:
                 )
                 default = 20_000
                 base = default
-                if consider_rarity:
+                if not anki_known:
                     base += min(default, min(freqs, default=default))
 
                 script_diff, script = script_difficulty(term.surface)
@@ -375,6 +381,9 @@ class Difficulty:
                 else:
                     soup_combo = 0
                 last_script = script
+
+                if not anki_known and script & Script.kanji:
+                    unknown_kanji_words += 1
 
                 if len(freqs) > 1:
                     sfreqs = sorted(freqs)
@@ -393,12 +402,14 @@ class Difficulty:
                     * 1.375 ** soup_combo
                     * homophone_ambiguity
                     * 1.01 ** len(box)
-                ) / 9000
+                    * 1.1 ** unknown_kanji_words
+                ) / 10_000
 
-            nonlocal soup_combo, last_script
+            nonlocal soup_combo, last_script, unknown_kanji_words
             if box_index == 0:
                 soup_combo = 0
                 last_script = Script(0)
+                unknown_kanji_words = 0
 
             if not (score := get()):
                 return 0
@@ -407,7 +418,7 @@ class Difficulty:
                 intervals[feat.orthBase] = iv
                 old_score = score
                 old_last_script = last_script
-                score = get(consider_rarity=False)
+                score = get(anki_known=True)
                 last_script = old_last_script
                 score -= score * 0.9 * min(1, iv / ANKI.SUPER_MATURE_THRESHOLD)
                 anki_bonuses.append(old_score - score)
