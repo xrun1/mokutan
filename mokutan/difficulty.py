@@ -391,7 +391,7 @@ class Difficulty:
                     max(base / 10, base - base / 10 * (count - 1) ** 1.5)
                     * type_factor
                     * script_diff
-                    * (soup_combo + 1)
+                    * 1.375 ** soup_combo
                     * homophone_ambiguity
                 ) / 10_000
                 # * 1.005 ** len(page_terms)
