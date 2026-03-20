@@ -393,7 +393,7 @@ class Difficulty:
                     * script_diff
                     * 1.375 ** soup_combo
                     * homophone_ambiguity
-                ) / 10_000
+                ) / 8000
                 # * 1.005 ** len(page_terms)
                 # ) / 12_500
 
@@ -579,7 +579,7 @@ def script_difficulty(word: str) -> tuple[float, Script]:
         elif is_kanji(char):
             script |= Script.kanji
             strokes = kanji_stroke_count(char) or AVG_KANJI_STROKES
-            score += max(0.5, 1.5 * (strokes / AVG_KANJI_STROKES))
+            score += 4 ** ((strokes - AVG_KANJI_STROKES) / AVG_KANJI_STROKES)
 
     if script & Script.kanji:
         factor = len(word) ** 0.9
