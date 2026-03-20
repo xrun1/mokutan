@@ -324,10 +324,10 @@ class Difficulty:
             for page in json.load(ocr_json.open(encoding="utf-8"))["pages"]:
                 pages.append([])
                 for box in page["blocks"]:
-                    for snt in sentence_bound.split("".join(box["lines"])):
-                        pages[-1].append(list(map(
-                            CachedFugashiNode.from_node, jp_parser(snt),
-                        )))
+                    pages[-1].append(list(map(
+                        CachedFugashiNode.from_node,
+                        jp_parser("\n".join(box["lines"])),
+                    )))
 
         dedup_counts = Counter(
             term.feature.orthBase
@@ -343,9 +343,9 @@ class Difficulty:
         soup_combo = 0
 
         def term_score(
-            page: list[list[CachedFugashiNode]],
-            sentence: list[CachedFugashiNode],
-            sentence_index: int,
+            whole_page: list[CachedFugashiNode],
+            box: list[CachedFugashiNode],
+            box_index: int,
             term: CachedFugashiNode,
         ) -> float:
             feat = term.feature
@@ -394,9 +394,11 @@ class Difficulty:
                     * (soup_combo + 1)
                     * homophone_ambiguity
                 ) / 10_000
+                # * 1.005 ** len(page_terms)
+                # ) / 12_500
 
             nonlocal soup_combo, last_script
-            if sentence_index == 0:
+            if box_index == 0:
                 soup_combo = 0
                 last_script = Script(0)
 
@@ -417,10 +419,11 @@ class Difficulty:
             return score
 
         def page_score(page: list[list[CachedFugashiNode]]) -> float:
+            all_terms = list(flatten(page))
             return sum(
-                term_score(page, sentence, i, term)
-                for sentence in page
-                for i, term in enumerate(sentence)
+                term_score(all_terms, box, i, term)
+                for box in page
+                for i, term in enumerate(box)
             )
 
         diff = cls(
