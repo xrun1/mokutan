@@ -38,7 +38,7 @@ kanji_parser: Cihai | None = None  # same for DB
 jp_freqs: dict[str | tuple[str, str], set[int]] = {}
 
 AVG_KANJI_STROKES = 11
-NON_CORE_POS1_DIFFICULTY_FACTORS = {
+POS1_DIFFICULTY_FACTORS = {
     "補助記号": 0,  # Punctuation, brackets...
     "記号": 0,  # Symbols
     "空白": 0,  # Whitespace
@@ -197,7 +197,7 @@ class Anki:
             clean = html.escape(part.surface)
             pos1 = part.feature.pos1
 
-            if iv is None or pos1 in NON_CORE_POS1_DIFFICULTY_FACTORS:
+            if iv is None or POS1_DIFFICULTY_FACTORS.get(pos1, 1) == 0:
                 yield clean
             elif not iv:
                 yield f"<span class=anki-new>{clean}</span>"
@@ -351,6 +351,14 @@ class Difficulty:
             feat = term.feature
 
             def get(consider_rarity: bool = True) -> float:
+                nonlocal soup_combo, last_script
+
+                type_factor = POS1_DIFFICULTY_FACTORS.get(feat.pos1, 1)
+                if not type_factor:
+                    soup_combo = 0
+                    last_script = Script(0)
+                    return 0
+
                 freqs = (
                     jp_freqs.get((feat.lemma, feat.orthBase)) or
                     jp_freqs.get(feat.orthBase) or
@@ -363,7 +371,6 @@ class Difficulty:
                     base += min(default, min(freqs, default=default))
 
                 script_diff, script = script_difficulty(term.surface)
-                nonlocal soup_combo, last_script
                 if script == last_script and script.bit_count() == 1:
                     soup_combo += 1
                 else:
@@ -382,17 +389,19 @@ class Difficulty:
                 count = max(1, dedup_counts[feat.orthBase])
                 return (
                     max(base / 10, base - base / 10 * (count - 1) ** 1.5)
-                    * NON_CORE_POS1_DIFFICULTY_FACTORS.get(feat.pos1, 1)
+                    * type_factor
                     * script_diff
                     * (soup_combo + 1)
                     * homophone_ambiguity
                 ) / 10_000
 
-            nonlocal last_script
+            nonlocal soup_combo, last_script
             if sentence_index == 0:
+                soup_combo = 0
                 last_script = Script(0)
 
-            score = get()
+            if not (score := get()):
+                return 0
 
             if (iv := ANKI.intervals.get(feat.orthBase)):
                 intervals[feat.orthBase] = iv
