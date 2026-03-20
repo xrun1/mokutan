@@ -343,7 +343,6 @@ class Difficulty:
         soup_combo = 0
 
         def term_score(
-            whole_page: list[CachedFugashiNode],
             box: list[CachedFugashiNode],
             box_index: int,
             term: CachedFugashiNode,
@@ -393,9 +392,8 @@ class Difficulty:
                     * script_diff
                     * 1.375 ** soup_combo
                     * homophone_ambiguity
-                ) / 8000
-                # * 1.005 ** len(page_terms)
-                # ) / 12_500
+                    * 1.01 ** len(box)
+                ) / 9000
 
             nonlocal soup_combo, last_script
             if box_index == 0:
@@ -419,9 +417,8 @@ class Difficulty:
             return score
 
         def page_score(page: list[list[CachedFugashiNode]]) -> float:
-            all_terms = list(flatten(page))
             return sum(
-                term_score(all_terms, box, i, term)
+                term_score(box, i, term)
                 for box in page
                 for i, term in enumerate(box)
             )
