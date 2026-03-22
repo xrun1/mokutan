@@ -131,6 +131,7 @@ class Anki:
         intervals = {}
         for deck, note_type, card_field in self.filters:
             query = f"deck:{json.dumps(deck)} note:{json.dumps(note_type)}"
+            log.info("Loading %s/%s/%s", deck, note_type, card_field)
             ids: list[int] = await self.do("findCards", query=query)
             info: list[dict[str, Any]] = await self.do("cardsInfo", cards=ids)
 
