@@ -4,7 +4,6 @@ import asyncio
 import gzip as gz
 import html
 import json
-import math
 import re
 from collections import Counter
 from dataclasses import asdict, dataclass, field
