@@ -57,6 +57,11 @@ class Page(ABC):
     request: Request
 
     @property
+    def force_refresh_url(self) -> URL:
+        return self.request.url.include_query_params(
+            r=int((parse_qs(self.request.url.query).get("r") or ["0"])[0]) + 1,
+        )
+
     def response(self) -> Response:
         passthrough = {type, getattr}
 
@@ -75,18 +80,28 @@ class Page(ABC):
             "queue_paused": io.pause_queue,
         })
 
-    @property
-    def force_refresh_url(self) -> URL:
-        return self.request.url.include_query_params(
-            r=int((parse_qs(self.request.url.query).get("r") or ["0"])[0]) + 1,
-        )
-
 
 @dataclass(slots=True)
 class Browse(Page):
     template: ClassVar[str] = "index.html.jinja"
+    loading: ClassVar[dict[MPath, asyncio.Task[Response]]] = {}
     path: MPath
     sort: str = ""
+
+
+@dataclass(slots=True)
+class DifficultyLoading(Page):
+    template: ClassVar[str] = "loading.html.jinja"
+    path: MPath
+
+    @property
+    def progress(self) -> tuple[int, int]:
+        done = total = 0
+        for path in self.path.non_images():
+            total += 1
+            if path.ocr_json_file not in difficulty.Difficulty.pooled_updates:
+                done += 1
+        return (done, total)
 
 
 @dataclass(slots=True)
@@ -194,13 +209,22 @@ async def browse(
     request: Request, path: Path | str = "/", sort: str = "",
 ) -> Response:
     if os.name == "nt" and str(path) in {"/", r"\\", ""}:
-        return WindowsDrives(request).response
+        return WindowsDrives(request).response()
 
     path = await MPath.from_route(path).extracted
 
     if path.is_file():
         return FileResponse(path)
+
     if path.is_dir():
-        return Browse(request, path, sort).response
+        if path not in Browse.loading:
+            Browse.loading[path] = asyncio.create_task(asyncio.to_thread(
+                Browse(request, path, sort).response,
+            ))
+        task = Browse.loading[path]
+        try:
+            return await asyncio.wait_for(asyncio.shield(task), timeout=1 / 3)
+        except TimeoutError:
+            return DifficultyLoading(request, path).response()
 
     return Response(status_code=404)

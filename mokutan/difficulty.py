@@ -255,6 +255,7 @@ class CachedFugashiNode:  # fugashi's Node class can't be dumped to json
 @dataclass(slots=True)
 class Difficulty:
     pool: ClassVar[ProcessPoolExecutor | None] = None
+    pooled_updates: ClassVar[set[Path]] = set()
     cache: ClassVar[dict[Path, tuple[float, int, Self]]] = {}
     cache_changed: ClassVar[bool] = False
     cache_path: ClassVar[Path] = CACHE_DIR / "Difficulty.json.gz"
@@ -318,10 +319,12 @@ class Difficulty:
     def preload_parallel(cls, *ocr_jsons: Path) -> dict[Path, Self]:
         assert cls.pool
         results = {}
+        cls.pooled_updates |= set(ocr_jsons)
 
         for ocr_json, (diff, fs) in zip(
             ocr_jsons, cls.pool.map(cls._calculate, ocr_jsons), strict=True,
         ):
+            cls.pooled_updates.discard(ocr_json)
             results[ocr_json] = diff
             if fs:
                 cls.cache[ocr_json] = (fs.st_mtime, fs.st_size, diff)

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>{{path.display_name}} | {{DISPLAY_NAME}}</title>
+
+        <meta charset=utf-8>
+        <meta name=viewport content="width=device-width">
+        <meta name=referrer content=same-origin>
+        <meta http-equiv=refresh content=0>
+
+        <link rel=stylesheet href=/style/init.css>
+        <link rel=icon href=/style/favicon.ico type=image/x-icon>
+    </head>
+    <body id="loading-page">
+        <section id=loading>
+            {% set done, total = progress %}
+            {{done}} / {{total}}
+        </section>
+    </body>
+</html>
