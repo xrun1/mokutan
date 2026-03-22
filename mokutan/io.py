@@ -436,7 +436,7 @@ class MPath(Path):
         def ns(key: Callable[[Self], Any], invert: bool = False) -> list[Self]:
             return natsorted(p, key=lambda e: (key(e), e.name), reverse=invert)
 
-        if sort in "dxa":
+        if sort and sort in "dxa":
             Difficulty.preload_parallel(*[p.ocr_json_file for p in p])
 
         if sort == "m":
