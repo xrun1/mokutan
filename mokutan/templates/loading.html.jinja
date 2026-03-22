@@ -14,7 +14,15 @@
     <body id="loading-page">
         <section id=loading>
             {% set done, total = progress %}
-            {{done}} / {{total}}
+            <label for=diff-load>
+                <span>Calculating difficulty...</span>
+                <span>{{done}}/{{total}}</span>
+            </label>
+            {% if done %}
+                <progress id=diff-load value={{done}} max={{total}}></progress>
+            {% else %}
+                <div id=diff-load class=indeterminate-bar></div>
+            {% endif %}
         </section>
     </body>
 </html>

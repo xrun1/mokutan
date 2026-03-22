@@ -7,6 +7,7 @@
 @import "ocr-popup.css";
 @import "files.css";
 @import "images.css";
+@import "loading.css";
 
 :root {
     --backgrounds: black;

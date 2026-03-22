@@ -4,7 +4,7 @@ import asyncio
 import os
 import subprocess
 from abc import ABC
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass
 from pathlib import Path  # noqa: TC003
 from threading import Event
@@ -222,9 +222,12 @@ async def browse(
                 Browse(request, path, sort).response,
             ))
         task = Browse.loading[path]
-        try:
-            return await asyncio.wait_for(asyncio.shield(task), timeout=1 / 3)
-        except TimeoutError:
-            return DifficultyLoading(request, path).response()
+        initial = difficulty.Difficulty.pooled_updates.copy()
+
+        while difficulty.Difficulty.pooled_updates == initial:
+            with suppress(TimeoutError):
+                return await asyncio.wait_for(asyncio.shield(task), timeout=.2)
+
+        return DifficultyLoading(request, path).response()
 
     return Response(status_code=404)
