@@ -185,12 +185,17 @@ class MPath(Path):
             return []
         return [p for p in get_sorted_dir(self) if is_web_image(p)]
 
-    def non_images(self, sort: str = "") -> list[Self]:
-        return self._sort(sort, (
+    def non_images(
+        self, sort: str = "", preload_difficulty: bool = False,
+    ) -> list[Self]:
+        items = self._sort(sort, [
             p for p in self.iterdir() if not
             (is_web_image(p) or p.suffix == ".mokuro" or p.name == "_ocr"
              or p.name.endswith(".read.json"))
-        ))
+        ])
+        if preload_difficulty:
+            Difficulty.preload_parallel(*[i.ocr_json_file for i in items])
+        return items
 
     @property
     def page_count(self) -> int:
@@ -427,9 +432,12 @@ class MPath(Path):
             yield boxes
 
     @classmethod
-    def _sort(cls, sort: str, p: Iterable[Self]) -> list[Self]:
+    def _sort(cls, sort: str, p: list[Self]) -> list[Self]:
         def ns(key: Callable[[Self], Any], invert: bool = False) -> list[Self]:
             return natsorted(p, key=lambda e: (key(e), e.name), reverse=invert)
+
+        if sort in "dxa":
+            Difficulty.preload_parallel(*[p.ocr_json_file for p in p])
 
         if sort == "m":
             return ns(lambda e: e.stat().st_mtime)
@@ -449,10 +457,10 @@ class MPath(Path):
     def _sibling_chapters(self, sort: str = "") -> tuple[list[Self], int]:
         if self.unextracted.is_root_dir:
             return ([], -1)
-        chapters = self._sort(sort, (
+        chapters = self._sort(sort, [
             p for p in self.unextracted.parent.iterdir()
             if (p.is_dir() and p.name != "_ocr") or is_supported_archive(p)
-        ))
+        ])
         return (chapters, chapters.index(self.unextracted.parent / self.name))
 
     def _mark(self, name: str) -> Path:

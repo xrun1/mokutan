@@ -6,6 +6,7 @@ import html
 import json
 import re
 from collections import Counter
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import asdict, dataclass, field
 from datetime import timedelta
 from enum import IntFlag, auto
@@ -29,6 +30,7 @@ from . import misc
 from .utils import CACHE_DIR, ReferrerRedirect, flatten, log
 
 if TYPE_CHECKING:
+    import os
     from collections.abc import Iterable
 
 
@@ -252,6 +254,7 @@ class CachedFugashiNode:  # fugashi's Node class can't be dumped to json
 
 @dataclass(slots=True)
 class Difficulty:
+    pool: ClassVar[ProcessPoolExecutor | None] = None
     cache: ClassVar[dict[Path, tuple[float, int, Self]]] = {}
     cache_changed: ClassVar[bool] = False
     cache_path: ClassVar[Path] = CACHE_DIR / "Difficulty.json.gz"
@@ -304,8 +307,33 @@ class Difficulty:
 
     @classmethod
     def calculate(cls, ocr_json: Path) -> Self:
+        diff, fs = cls._calculate(ocr_json)
+        if fs:
+            cls.cache[ocr_json] = (fs.st_mtime, fs.st_size, diff)
+            cls.cache_changed = True
+            log.info("Calculated difficulty for %s", ocr_json)
+        return diff
+
+    @classmethod
+    def preload_parallel(cls, *ocr_jsons: Path) -> dict[Path, Self]:
+        assert cls.pool
+        results = {}
+
+        for ocr_json, (diff, fs) in zip(
+            ocr_jsons, cls.pool.map(cls._calculate, ocr_jsons), strict=True,
+        ):
+            results[ocr_json] = diff
+            if fs:
+                cls.cache[ocr_json] = (fs.st_mtime, fs.st_size, diff)
+                cls.cache_changed = True
+                log.info("Calculated difficulty for %s", ocr_json)
+
+        return results
+
+    @classmethod
+    def _calculate(cls, ocr_json: Path) -> tuple[Self, os.stat_result | None]:
         if not (jp_parser and jp_freqs and ocr_json.exists()):
-            return cls()
+            return (cls(), None)
 
         fs_stats = ocr_json.stat()
         cached: Self | None = None
@@ -314,16 +342,13 @@ class Difficulty:
             mtime, size, cached = cls.cache[ocr_json]
             if not cached.anki_changed:
                 if mtime == fs_stats.st_mtime and size == fs_stats.st_size:
-                    return cached
+                    return (cached, None)
 
         pages: list[list[list[CachedFugashiNode]]] = []
 
         if cached:
-            log.info("Updating cached difficulty for %s", ocr_json)
             pages = cached.pages
         else:
-            log.info("Calculating difficulty for %s", ocr_json)
-
             for page in json.load(ocr_json.open(encoding="utf-8"))["pages"]:
                 pages.append([])
                 for box in page["blocks"]:
@@ -449,9 +474,7 @@ class Difficulty:
                 term: iv.total_seconds() for term, iv in intervals.items()
             } | dict.fromkeys(anki_not_found, 0),
         )
-        cls.cache[ocr_json] = (fs_stats.st_mtime, fs_stats.st_size, diff)
-        cls.cache_changed = True
-        return diff
+        return (diff, fs_stats)
 
     @classmethod
     def from_cached(cls, **kwargs: Any) -> Self:
@@ -468,6 +491,7 @@ class Difficulty:
         if not cls.cache_path.exists():
             return False
 
+        log.info("Loading difficulty cache...")
         try:
             data = json.loads(gz.decompress(cls.cache_path.read_bytes()))
             if data.pop("__version__") != cls.cache_version:
@@ -510,6 +534,8 @@ class Difficulty:
 
 
 def load_dict_data() -> None:
+    log.info("Loading dictionary data...")
+
     global kanji_parser  # noqa: PLW0603
     kanji_parser = Cihai()
     if not kanji_parser.unihan.is_bootstrapped:
@@ -542,6 +568,8 @@ def load_dict_data() -> None:
         out.setdefault(k, set()).add(v)
 
     jp_freqs.update(out)
+
+    Difficulty.pool = ProcessPoolExecutor()
 
 
 def is_hiragana(char: str) -> bool:
@@ -626,3 +654,7 @@ async def anki_add_filter(
 async def anki_delete_filter(request: Request, index: int) -> Response:
     (await ANKI.delete_filter(index)).save()
     return ReferrerRedirect(request)
+
+
+Difficulty.load_cache()
+load_dict_data()

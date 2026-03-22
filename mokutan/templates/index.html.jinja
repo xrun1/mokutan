@@ -23,7 +23,7 @@
             {% include "file-options.html.jinja" %}
             <ul>
                 {% set ns = namespace(break_done=False) %}
-                {% for path in path.non_images(sort) %}
+                {% for path in path.non_images(sort, preload_difficulty=True)%}
                     {% if not ns.break_done and (
                         (sort == "p" and not path.page_count) or
                         (sort == "r" and not path.read_date) or
