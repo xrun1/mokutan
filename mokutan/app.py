@@ -84,7 +84,7 @@ class Page(ABC):
 @dataclass(slots=True)
 class Browse(Page):
     template: ClassVar[str] = "index.html.jinja"
-    loading: ClassVar[dict[MPath, asyncio.Task[Response]]] = {}
+    loading: ClassVar[dict[tuple[MPath, str], asyncio.Task[Response]]] = {}
     path: MPath
     sort: str = ""
 
@@ -221,10 +221,10 @@ async def browse(
 
     if path.is_dir():
         if path not in Browse.loading:
-            Browse.loading[path] = asyncio.create_task(asyncio.to_thread(
+            Browse.loading[path, sort] = asyncio.create_task(asyncio.to_thread(
                 Browse(request, path, sort).response,
             ))
-        task = Browse.loading[path]
+        task = Browse.loading[path, sort]
         original = difficulty.Difficulty.pooled_updates.copy()
 
         while difficulty.Difficulty.pooled_updates == original:
