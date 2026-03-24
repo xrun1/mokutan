@@ -6,7 +6,7 @@ import html
 import json
 import re
 from collections import Counter
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import Future, ProcessPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, field
 from datetime import timedelta
 from enum import IntFlag, auto
@@ -27,7 +27,7 @@ from fastapi.datastructures import URL
 from mokutan.utils import DATA_DIR
 
 from . import misc
-from .utils import CACHE_DIR, ReferrerRedirect, flatten, log
+from .utils import CACHE_DIR, ReferrerRedirect, catch_log_exceptions, flatten, log
 
 if TYPE_CHECKING:
     import os
@@ -256,6 +256,7 @@ class CachedFugashiNode:  # fugashi's Node class can't be dumped to json
 @dataclass(slots=True)
 class Difficulty:
     pool: ClassVar[ProcessPoolExecutor | None] = None
+    pooled_checking: ClassVar[set[Path]] = set()
     pooled_updates: ClassVar[set[Path]] = set()
     cache: ClassVar[dict[Path, tuple[float, int, Self]]] = {}
     cache_changed: ClassVar[bool] = False
@@ -309,50 +310,64 @@ class Difficulty:
 
     @classmethod
     def calculate(cls, ocr_json: Path) -> Self:
-        diff, fs = cls._calculate(ocr_json)
-        if fs:
-            cls.cache[ocr_json] = (fs.st_mtime, fs.st_size, diff)
-            cls.cache_changed = True
-            log.info("Calculated difficulty for %s", ocr_json)
+        diff, update = cls._get_cached(ocr_json)
+        if update:
+            diff = cls._cache_add(ocr_json, cls._calculate(ocr_json, diff))
         return diff
 
     @classmethod
     def preload_parallel(cls, *ocr_jsons: Path) -> dict[Path, Self]:
         assert cls.pool
-        results = {}
-        cls.pooled_updates |= set(ocr_jsons)
+        futures: dict[Future[Self], Path] = {}
+        results: dict[Path, Self] = {}
 
-        for ocr_json, (diff, fs) in zip(
-            ocr_jsons, cls.pool.map(cls._calculate, ocr_jsons), strict=True,
-        ):
+        cls.pooled_checking |= set(ocr_jsons)
+
+        for j in ocr_jsons:
+            diff, update = cls._get_cached(j)
+            results[j] = diff
+            if update:
+                cls.pooled_updates.add(j)
+                futures[cls.pool.submit(cls._calculate, j, diff)] = j
+
+        cls.pooled_checking -= set(ocr_jsons)
+
+        for future in as_completed(futures):
+            ocr_json = futures[future]
             cls.pooled_updates.discard(ocr_json)
-            results[ocr_json] = diff
-            if fs:
-                cls.cache[ocr_json] = (fs.st_mtime, fs.st_size, diff)
-                cls.cache_changed = True
-                log.info("Calculated difficulty for %s", ocr_json)
+            results[ocr_json] = cls._cache_add(ocr_json, future.result())
 
         return results
 
     @classmethod
-    def _calculate(cls, ocr_json: Path) -> tuple[Self, os.stat_result | None]:
-        if not (jp_parser and jp_freqs and ocr_json.exists()):
-            return (cls(), None)
+    def _get_cached(cls, ocr_json: Path) -> tuple[Self, bool]:
+        if ocr_json not in cls.cache:
+            return (cls(), ocr_json.exists())
 
-        fs_stats = ocr_json.stat()
-        cached: Self | None = None
+        mtime, size, cached = cls.cache[ocr_json]
 
-        if ocr_json in cls.cache:
-            mtime, size, cached = cls.cache[ocr_json]
-            if not cached.anki_changed:
-                if mtime == fs_stats.st_mtime and size == fs_stats.st_size:
-                    return (cached, None)
+        if cached.anki_changed:
+            return (cached, True)
 
-        pages: list[list[list[CachedFugashiNode]]] = []
+        try:
+            fs_stats = ocr_json.stat()
+        except FileNotFoundError:
+            return (cached, False)
+        except OSError as e:
+            log.warning("Failed accessing %r: %s", ocr_json, e)
+            return (cached, False)
 
-        if cached:
-            pages = cached.pages
-        else:
+        if mtime != fs_stats.st_mtime or size != fs_stats.st_size:
+            return (cached, True)
+
+        return (cached, False)
+
+    @classmethod
+    def _calculate(cls, ocr_json: Path, cached: Self) -> Self:
+        assert jp_parser
+        pages: list[list[list[CachedFugashiNode]]] = cached.pages
+
+        if not pages:
             for page in json.load(ocr_json.open(encoding="utf-8"))["pages"]:
                 pages.append([])
                 for box in page["blocks"]:
@@ -465,7 +480,7 @@ class Difficulty:
                 for i, term in enumerate(box)
             )
 
-        diff = cls(
+        return cls(
             pages=pages,
             page_scores=[page_score(p) for p in pages],
             unique_terms=len(dedup_counts),
@@ -478,7 +493,14 @@ class Difficulty:
                 term: iv.total_seconds() for term, iv in intervals.items()
             } | dict.fromkeys(anki_not_found, 0),
         )
-        return (diff, fs_stats)
+
+    @classmethod
+    def _cache_add(cls, ocr_json: Path, diff: Self) -> Self:
+        fs = ocr_json.stat()
+        cls.cache[ocr_json] = (fs.st_mtime, fs.st_size, diff)
+        cls.cache_changed = True
+        log.info("Cached difficulty for %s", ocr_json)
+        return diff
 
     @classmethod
     def from_cached(cls, **kwargs: Any) -> Self:

@@ -97,8 +97,11 @@ class DifficultyLoading(Page):
     @property
     def progress(self) -> tuple[int, int]:
         done = total = 0
+
         for path in self.path.non_images():
             total += 1
+            if path.ocr_json_file in difficulty.Difficulty.pooled_checking:
+                continue
             if path.ocr_json_file not in difficulty.Difficulty.pooled_updates:
                 done += 1
         return (done, total)
@@ -222,9 +225,9 @@ async def browse(
                 Browse(request, path, sort).response,
             ))
         task = Browse.loading[path]
-        initial = difficulty.Difficulty.pooled_updates.copy()
+        original = difficulty.Difficulty.pooled_updates.copy()
 
-        while difficulty.Difficulty.pooled_updates == initial:
+        while difficulty.Difficulty.pooled_updates == original:
             with suppress(TimeoutError):
                 return await asyncio.wait_for(asyncio.shield(task), timeout=.2)
 
