@@ -49,9 +49,9 @@ def flatten[T](groups: Iterable[Iterable[T]]) -> Iterator[T]:
         yield from group
 
 
-def catch_log_exceptions[**P, T](fn: Callable[P, T]) -> Callable[P, T]:
+def catch_log_exceptions[**P](fn: Callable[P, None]) -> Callable[P, None]:
     @functools.wraps(fn)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
         try:
             fn(*args, **kwargs)
         except Exception:
