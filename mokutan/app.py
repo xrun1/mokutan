@@ -4,7 +4,7 @@ import asyncio
 import os
 import subprocess
 from abc import ABC
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path  # noqa: TC003
 from threading import Event
@@ -57,11 +57,6 @@ class Page(ABC):
     request: Request
 
     @property
-    def force_refresh_url(self) -> URL:
-        return self.request.url.include_query_params(
-            r=int((parse_qs(self.request.url.query).get("r") or ["0"])[0]) + 1,
-        )
-
     def response(self) -> Response:
         passthrough = {type, getattr}
 
@@ -80,31 +75,18 @@ class Page(ABC):
             "queue_paused": io.pause_queue,
         })
 
+    @property
+    def force_refresh_url(self) -> URL:
+        return self.request.url.include_query_params(
+            r=int((parse_qs(self.request.url.query).get("r") or ["0"])[0]) + 1,
+        )
+
 
 @dataclass(slots=True)
 class Browse(Page):
     template: ClassVar[str] = "index.html.jinja"
-    loading: ClassVar[dict[tuple[MPath, str], asyncio.Task[Response]]] = {}
     path: MPath
     sort: str = ""
-
-
-@dataclass(slots=True)
-class DifficultyLoading(Page):
-    template: ClassVar[str] = "loading.html.jinja"
-    path: MPath
-
-    @property
-    def progress(self) -> tuple[int, int]:
-        done = total = 0
-
-        for path in self.path.non_images():
-            total += 1
-            if path.ocr_json_file in difficulty.Difficulty.pooled_checking:
-                continue
-            if path.ocr_json_file not in difficulty.Difficulty.pooled_updates:
-                done += 1
-        return (done, total)
 
 
 @dataclass(slots=True)
@@ -127,6 +109,8 @@ class WindowsDrives(Page):
 
 @asynccontextmanager
 async def life(_app: FastAPI):
+    difficulty.Difficulty.load_cache()
+    difficulty.load_dict_data()
     await difficulty.ANKI.safe_load()
     tasks = [
         asyncio.create_task(difficulty.ANKI.keep_updated()),
@@ -212,25 +196,13 @@ async def browse(
     request: Request, path: Path | str = "/", sort: str = "",
 ) -> Response:
     if os.name == "nt" and str(path) in {"/", r"\\", ""}:
-        return WindowsDrives(request).response()
+        return WindowsDrives(request).response
 
     path = await MPath.from_route(path).extracted
 
     if path.is_file():
         return FileResponse(path)
-
     if path.is_dir():
-        if path not in Browse.loading:
-            Browse.loading[path, sort] = asyncio.create_task(asyncio.to_thread(
-                Browse(request, path, sort).response,
-            ))
-        task = Browse.loading[path, sort]
-        original = difficulty.Difficulty.pooled_updates.copy()
-
-        while difficulty.Difficulty.pooled_updates == original:
-            with suppress(TimeoutError):
-                return await asyncio.wait_for(asyncio.shield(task), timeout=.2)
-
-        return DifficultyLoading(request, path).response()
+        return Browse(request, path, sort).response
 
     return Response(status_code=404)
