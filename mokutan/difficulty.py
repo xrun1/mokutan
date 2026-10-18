@@ -256,14 +256,13 @@ class Difficulty:
     cache: ClassVar[dict[Path, tuple[float, int, Self]]] = {}
     cache_changed: ClassVar[bool] = False
     cache_path: ClassVar[Path] = CACHE_DIR / "Difficulty.json.gz"
-    cache_version: ClassVar[int] = 10
+    cache_version: ClassVar[int] = 11
 
     pages: list[list[list[CachedFugashiNode]]] = field(default_factory=list)
     page_scores: list[float] = field(default_factory=list)
     unique_terms: int = 0
     anki_learned: int = 0
     anki_mature: int = 0
-    anki_score_decrease: float = 0
     anki_intervals: dict[str, float] = field(default_factory=dict)
     anki_changed: bool = False
 
@@ -273,10 +272,6 @@ class Difficulty:
     @property
     def score(self) -> float:
         return sum(self.page_scores) / (len(self.page_scores) or 1)
-
-    @property
-    def raw_score(self) -> float:
-        return self.score + self.anki_score_decrease
 
     @property
     def sentences_per_page(self) -> float:
@@ -298,10 +293,6 @@ class Difficulty:
     @property
     def anki_mature_percent(self) -> float:
         return self.anki_mature / (self.unique_terms or 1) * 100
-
-    @property
-    def anki_score_decrease_percent(self) -> float:
-        return self.anki_score_decrease / (self.raw_score or 1) * 100
 
     @classmethod
     def calculate(cls, ocr_json: Path) -> Self:
@@ -342,7 +333,6 @@ class Difficulty:
         )
         intervals: dict[str, timedelta] = {}
         anki_not_found: set[str] = set()
-        anki_bonuses: list[float] = []
         last_script = Script(0)
         soup_combo = 0
         unknown_kanji_words = 0
@@ -352,83 +342,67 @@ class Difficulty:
             box_index: int,
             term: CachedFugashiNode,
         ) -> float:
-            feat = term.feature
-
-            def get(anki_known: bool = False) -> float:
-                nonlocal soup_combo, last_script, unknown_kanji_words
-
-                type_factor = POS1_DIFFICULTY_FACTORS.get(feat.pos1, 1)
-                if not type_factor:
-                    soup_combo = 0
-                    last_script = Script(0)
-                    return 0
-
-                freqs = (
-                    jp_freqs.get((feat.lemma, feat.orthBase)) or
-                    jp_freqs.get(feat.orthBase) or
-                    jp_freqs.get(feat.lemma) or
-                    set()
-                )
-                default = 20_000
-                base = default
-                if not anki_known:
-                    base += min(default, min(freqs, default=default))
-
-                script_diff, script = script_difficulty(term.surface)
-                if script == last_script and script.bit_count() == 1:
-                    soup_combo += 1
-                else:
-                    soup_combo = 0
-                last_script = script
-
-                if not anki_known and script & Script.kanji:
-                    unknown_kanji_words += 1
-
-                if len(freqs) > 1:
-                    sfreqs = sorted(freqs)
-                    best = sfreqs[0]
-                    homophone_ambiguity = 1.5 ** sum(
-                        (best / (f or 1)) ** 0.75 for f in sfreqs[1:]
-                    )
-                else:
-                    homophone_ambiguity = 1
-
-                count = max(1, dedup_counts[feat.orthBase])
-                return (
-                    max(
-                        base / 10,
-                        base - base /
-                            (10 * max(0.1, script_diff)) * (count - 1) ** 1.5,
-                    )
-                    * type_factor
-                    * script_diff
-                    * 1.375 ** soup_combo
-                    * homophone_ambiguity
-                    * 1.01 ** len(box)
-                    * 1.05 ** unknown_kanji_words
-                ) / 10_000
-
             nonlocal soup_combo, last_script, unknown_kanji_words
             if box_index == 0:
                 soup_combo = 0
                 last_script = Script(0)
                 unknown_kanji_words = 0
 
-            if not (score := get()):
-                return 0
+            feat = term.feature
 
             if (iv := ANKI.intervals.get(feat.orthBase)):
                 intervals[feat.orthBase] = iv
-                old_score = score
-                old_last_script = last_script
-                score = get(anki_known=True)
-                last_script = old_last_script
-                score -= score * 0.9 * min(1, iv / ANKI.SUPER_MATURE_THRESHOLD)
-                anki_bonuses.append(old_score - score)
             else:
                 anki_not_found.add(feat.orthBase)
 
-            return score
+            type_factor = POS1_DIFFICULTY_FACTORS.get(feat.pos1, 1)
+            if not type_factor:
+                soup_combo = 0
+                last_script = Script(0)
+                return 0
+
+            freqs = (
+                jp_freqs.get((feat.lemma, feat.orthBase)) or
+                jp_freqs.get(feat.orthBase) or
+                jp_freqs.get(feat.lemma) or
+                set()
+            )
+            default = 20_000
+            base = default + min(default, min(freqs, default=default))
+
+            script_diff, script = script_difficulty(term.surface)
+            if script == last_script and script.bit_count() == 1:
+                soup_combo += 1
+            else:
+                soup_combo = 0
+            last_script = script
+
+            if script & Script.kanji:
+                unknown_kanji_words += 1
+
+            if len(freqs) > 1:
+                sfreqs = sorted(freqs)
+                best = sfreqs[0]
+                homophone_ambiguity = 1.5 ** sum(
+                    (best / (f or 1)) ** 0.75 for f in sfreqs[1:]
+                )
+            else:
+                homophone_ambiguity = 1
+
+            count = max(1, dedup_counts[feat.orthBase])
+            return (
+                max(
+                    base / 10,
+                    base - base /
+                        (10 * max(0.1, script_diff)) * (count - 1) ** 1.5,
+                )
+                * type_factor
+                * script_diff
+                * 1.375 ** soup_combo
+                * homophone_ambiguity
+                * 1.01 ** len(box)
+                * 1.05 ** unknown_kanji_words
+            ) / 10_000
 
         def page_score(page: list[list[CachedFugashiNode]]) -> float:
             return sum(
@@ -445,7 +419,6 @@ class Difficulty:
             anki_mature=len([
                 iv for iv in intervals.values() if iv >= ANKI.MATURE_THRESHOLD
             ]),
-            anki_score_decrease=sum(anki_bonuses) / (len(pages) or 1),
             anki_intervals={
                 term: iv.total_seconds() for term, iv in intervals.items()
             } | dict.fromkeys(anki_not_found, 0),
