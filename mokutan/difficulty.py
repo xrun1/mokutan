@@ -494,7 +494,7 @@ class Difficulty:
             cls.cache_path.parent.mkdir(parents=True, exist_ok=True)
             data = json.dumps({"__version__": cls.cache_version} | {
                 str(path): [mtime, size, asdict(diff)]
-                for path, (mtime, size, diff) in cls.cache.items()
+                for path, (mtime, size, diff) in cls.cache.copy().items()
             }, ensure_ascii=False).encode()
             cls.cache_path.write_bytes(gz.compress(data, 3))
             cls.cache_changed = False
