@@ -13,7 +13,7 @@ from functools import lru_cache
 from importlib import resources
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar, Self, override
+from typing import TYPE_CHECKING, Any, ClassVar, Self, final, override
 from zipfile import ZipFile
 
 import fugashi
@@ -23,6 +23,7 @@ from cihai.core import Cihai
 from fastapi import APIRouter, Request, Response, status
 from fastapi.datastructures import URL
 
+from mokutan.cache import Cache
 from mokutan.utils import DATA_DIR
 
 from . import misc
@@ -151,7 +152,7 @@ class Anki:
 
         if learned_before != self.learned:
             ivs = {t: i.total_seconds() for t, i in intervals.items()}.items()
-            for *_, diff in Difficulty.cache.values():
+            for *_, diff in Difficulty.cache.data.values():
                 diff_ivs = {
                     term: iv for term, iv in diff.anki_intervals.items()
                     if iv or term in intervals
@@ -251,12 +252,30 @@ class CachedFugashiNode:  # fugashi's Node class can't be dumped to json
         return cls(node.surface, feat.orthBase, feat.lemma, feat.pos1)
 
 
+@final
+@dataclass(slots=True)
+class DifficultyCache(Cache[Path, tuple[float, int, "Difficulty"]]):
+    path: ClassVar[Path] = CACHE_DIR / "Difficulty.json.gz"
+    version: ClassVar[int] = 11
+
+    @override
+    def load_data(self, data: dict[str, Any]) -> None:
+        self.data |= {
+            Path(path): (mtime, size, Difficulty.from_cached(**diff))
+            for path, (mtime, size, diff) in data.items()
+        }
+
+    @override
+    def dump_data(self) -> dict[str, Any]:
+        return {
+            str(path): [mtime, size, asdict(diff)]
+            for path, (mtime, size, diff) in self.data.copy().items()
+        }
+
+
 @dataclass(slots=True)
 class Difficulty:
-    cache: ClassVar[dict[Path, tuple[float, int, Self]]] = {}
-    cache_changed: ClassVar[bool] = False
-    cache_path: ClassVar[Path] = CACHE_DIR / "Difficulty.json.gz"
-    cache_version: ClassVar[int] = 11
+    cache: ClassVar[DifficultyCache] = DifficultyCache()
 
     pages: list[list[list[CachedFugashiNode]]] = field(default_factory=list)
     page_scores: list[float] = field(default_factory=list)
@@ -295,15 +314,15 @@ class Difficulty:
         return self.anki_mature / (self.unique_terms or 1) * 100
 
     @classmethod
-    def calculate(cls, ocr_json: Path) -> Self:
+    def calculate(cls, ocr_json: Path) -> Difficulty:
         if not (jp_parser and jp_freqs and ocr_json.exists()):
             return cls()
 
         fs_stats = ocr_json.stat()
-        cached: Self | None = None
+        cached: Difficulty | None = None
 
-        if ocr_json in cls.cache:
-            mtime, size, cached = cls.cache[ocr_json]
+        if ocr_json in cls.cache.data:
+            mtime, size, cached = cls.cache.data[ocr_json]
             if not cached.anki_changed:
                 if mtime == fs_stats.st_mtime and size == fs_stats.st_size:
                     return cached
@@ -423,8 +442,8 @@ class Difficulty:
                 term: iv.total_seconds() for term, iv in intervals.items()
             } | dict.fromkeys(anki_not_found, 0),
         )
-        cls.cache[ocr_json] = (fs_stats.st_mtime, fs_stats.st_size, diff)
-        cls.cache_changed = True
+        cls.cache.data[ocr_json] = (fs_stats.st_mtime, fs_stats.st_size, diff)
+        cls.cache.changed = True
         return diff
 
     @classmethod
@@ -436,51 +455,6 @@ class Difficulty:
             ] for page in kwargs.pop("pages")
         ]
         return cls(pages=pages, **kwargs)
-
-    @classmethod
-    def load_cache(cls) -> bool:
-        if not cls.cache_path.exists():
-            return False
-
-        try:
-            data = json.loads(gz.decompress(cls.cache_path.read_bytes()))
-            if data.pop("__version__") != cls.cache_version:
-                log.warning("Difficulty cache version mismatch, ignoring it")
-                return False
-
-            cls.cache |= {
-                Path(path): (mtime, size, cls.from_cached(**diff))
-                for path, (mtime, size, diff) in data.items()
-            }
-        except Exception:  # noqa: BLE001
-            log.exception("Failed reading %s", cls.cache_path)
-            return False
-
-        return True
-
-    @classmethod
-    def save_cache(cls) -> bool:
-        if not cls.cache_changed:
-            return False
-
-        try:
-            cls.cache_path.parent.mkdir(parents=True, exist_ok=True)
-            data = json.dumps({"__version__": cls.cache_version} | {
-                str(path): [mtime, size, asdict(diff)]
-                for path, (mtime, size, diff) in cls.cache.copy().items()
-            }, ensure_ascii=False).encode()
-            cls.cache_path.write_bytes(gz.compress(data, 3))
-            cls.cache_changed = False
-        except Exception:  # noqa: BLE001
-            log.exception("Failed saving %s", cls.cache_path)
-            return False
-        return True
-
-    @classmethod
-    async def keep_saving_cache(cls, interval: float = 20) -> None:
-        while True:
-            await asyncio.sleep(interval)
-            cls.save_cache()
 
 
 def load_dict_data() -> None:
