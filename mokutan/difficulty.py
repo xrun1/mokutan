@@ -410,37 +410,41 @@ class Difficulty:
             return cls()
 
         fs_stats = ocr_json.stat()
-        cached: Difficulty | None = None
+        diff = cls()
+        cached_text_changed = False
 
         if ocr_json in cls.cache.data:
-            mtime, size, cached = cls.cache.data[ocr_json]
-            if not cached.anki_changed:
-                if mtime == fs_stats.st_mtime and size == fs_stats.st_size:
-                    return cached
+            mtime, size, diff = cls.cache.data[ocr_json]
+            if mtime == fs_stats.st_mtime and size == fs_stats.st_size:
+                if not diff.anki_changed:
+                    return diff
+            else:
+                cached_text_changed = True
 
-        pages: list[list[list[CachedFugashiNode]]] = []
-
-        if cached:
+        if diff.pages:
             log.info("Updating cached difficulty for %s", ocr_json)
-            pages = cached.pages
         else:
             log.info("Calculating difficulty for %s", ocr_json)
 
             for page in json.load(ocr_json.open(encoding="utf-8"))["pages"]:
-                pages.append([])
+                diff.pages.append([])
                 for box in page["blocks"]:
-                    pages[-1].append(list(map(
+                    diff.pages[-1].append(list(map(
                         CachedFugashiNode.from_node,
                         jp_parser("\n".join(box["lines"])),
                     )))
 
-        dedup_counts = Counter(
-            term.feature.orthBase
-            for page in pages
-            for sentence in page
-            for term in sentence
-            if term.feature.orthBase
-        )
+        dedup_counts = Counter()
+        if not diff.unique_terms:
+            dedup_counts = Counter(
+                term.feature.orthBase
+                for page in diff.pages
+                for sentence in page
+                for term in sentence
+                if term.feature.orthBase
+            )
+            diff.unique_terms = len(dedup_counts)
+
         intervals: dict[str, timedelta] = {}
         anki_not_found: set[str] = set()
         last_script = Script(0)
@@ -521,18 +525,23 @@ class Difficulty:
                 for i, term in enumerate(box)
             )
 
-        diff = cls(
-            pages=pages,
-            page_scores=[page_score(p) for p in pages],
-            unique_terms=len(dedup_counts),
-            anki_learned=len(intervals),
-            anki_mature=len([
-                iv for iv in intervals.values() if iv >= ANKI.MATURE_THRESHOLD
-            ]),
-            anki_intervals={
-                term: iv.total_seconds() for term, iv in intervals.items()
-            } | dict.fromkeys(anki_not_found, 0),
-        )
+        if diff.anki_intervals and not cached_text_changed:
+            intervals = {
+                term: ANKI.intervals.get(term, (None, None))[1] or timedelta()
+                for term in diff.anki_intervals
+            }
+
+        if not diff.page_scores:
+            diff.page_scores = [page_score(p) for p in diff.pages]
+
+        diff.anki_learned = len(intervals)
+        diff.anki_mature = len([
+            iv for iv in intervals.values() if iv >= ANKI.MATURE_THRESHOLD
+        ])
+        diff.anki_intervals = {
+            term: iv.total_seconds() for term, iv in intervals.items()
+        } | dict.fromkeys(anki_not_found, 0)
+
         cls.cache.data[ocr_json] = (fs_stats.st_mtime, fs_stats.st_size, diff)
         cls.cache.changed = True
         return diff
