@@ -7,7 +7,7 @@ import json
 import re
 from collections import Counter
 from dataclasses import asdict, dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import IntFlag, auto
 from functools import lru_cache
 from importlib import resources
@@ -70,7 +70,7 @@ class AnkiCache(Cache):
     intervals: dict[str, tuple[set[int], timedelta]] = \
         field(default_factory=dict)
 
-    last_modifications: dict[int, tuple[set[str], timedelta]] = \
+    last_modifications: dict[int, tuple[set[str], datetime]] = \
         field(default_factory=dict)
 
     @override
@@ -80,7 +80,7 @@ class AnkiCache(Cache):
             for term, (card_ids, time) in (data.get("intervals") or {}).items()
         }
         self.last_modifications = {
-            int(card_id): (set(terms), timedelta(seconds=time))
+            int(card_id): (set(terms), datetime.fromtimestamp(time))
             for card_id, (terms, time) in
             (data.get("last_modifications") or {}).items()
         }
@@ -93,7 +93,7 @@ class AnkiCache(Cache):
                 for term, (card_ids, time) in self.intervals.copy().items()
             },
             "last_modifications": {
-                str(card_id): (list(terms), time.total_seconds())
+                str(card_id): (list(terms), time.timestamp())
                 for card_id, (terms, time) in
                 self.last_modifications.copy().items()
             },
@@ -121,7 +121,7 @@ class Anki:
         return self.cache.intervals
 
     @property
-    def last_modifications(self) -> dict[int, tuple[set[str], timedelta]]:
+    def last_modifications(self) -> dict[int, tuple[set[str], datetime]]:
         return self.cache.last_modifications
 
     @property
@@ -185,7 +185,7 @@ class Anki:
                 result["cardId"]
                 for result in await self.do("cardsModTime", cards=list(ids))
                 if result["cardId"] not in self.last_modifications or
-                    timedelta(seconds=result["mod"]) >
+                    datetime.fromtimestamp(result["mod"]) >
                         self.last_modifications[result["cardId"]][1]
             ]
 
@@ -200,9 +200,9 @@ class Anki:
                 cid = card["cardId"]
                 iv = card["interval"]
 
-                delta = timedelta(seconds=card["mod"])
+                mod = datetime.fromtimestamp(card["mod"])
                 terms = set()
-                self.last_modifications[cid] = (terms, delta)
+                self.last_modifications[cid] = (terms, mod)
                 self.cache.changed = True
 
                 for part in jp_parser(card["fields"][card_field]["value"]):
