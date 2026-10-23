@@ -254,9 +254,12 @@ class CachedFugashiNode:  # fugashi's Node class can't be dumped to json
 
 @final
 @dataclass(slots=True)
-class DifficultyCache(Cache[Path, tuple[float, int, "Difficulty"]]):
+class DifficultyCache(Cache):
     path: ClassVar[Path] = CACHE_DIR / "Difficulty.json.gz"
     version: ClassVar[int] = 11
+
+    data: dict[Path, tuple[float, int, Difficulty]] = \
+        field(default_factory=dict)
 
     @override
     def load_data(self, data: dict[str, Any]) -> None:

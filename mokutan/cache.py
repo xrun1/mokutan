@@ -14,11 +14,10 @@ if TYPE_CHECKING:
 
 
 @dataclass(slots=True)
-class Cache[K, V](ABC):
+class Cache(ABC):
     path: ClassVar[Path]
     version: ClassVar[int]
 
-    data: dict[K, V] = field(default_factory=dict)
     changed: bool = False
 
     @abstractmethod
