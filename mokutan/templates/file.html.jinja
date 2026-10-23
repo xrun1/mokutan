@@ -38,7 +38,7 @@
 Words per page: ~{{d.terms_per_page | round(1)}}
 Sentences per page: ~{{d.sentences_per_page | round(1)}}
 Words per sentence: ~{{d.terms_per_sentence | round(1)}}
-Unique words: {{d.unique_terms}}
+Unique words: {{d.unique_terms | length}}
 Learned in Anki: {{d.anki_learned}} ({{d.anki_learned_percent | int}}%)
 Mature: {{d.anki_mature}} ({{d.anki_mature_percent | int}}%)
         ">

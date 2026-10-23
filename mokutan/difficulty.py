@@ -174,8 +174,10 @@ class Anki:
             note_fields.update(fields)
         self.note_fields = note_fields
 
+        changed_terms: set[str] = set()
         all_ids: set[int] = set()
         intervals = self.intervals.copy()
+
         for deck, note_type, card_field in self.filters:
             query = f"deck:{json.dumps(deck)} note:{json.dumps(note_type)}"
             ids: set[int] = set(await self.do("findCards", query=query))
@@ -207,10 +209,14 @@ class Anki:
 
                 for part in jp_parser(card["fields"][card_field]["value"]):
                     k = part.feature.orthBase
+                    if k:
+                        changed_terms.add(k)
                     if not k:
                         k = part.surface
                         if not k or any(not is_japanese(char) for char in k):
                             continue
+                        # this might be e.g. a lone kanji, just cache it so
+                        # we don't end up repeatedly fetching it again
 
                     terms.add(k)
                     v = timedelta(seconds=iv) if iv < 0 else timedelta(days=iv)
@@ -224,6 +230,7 @@ class Anki:
         for gone_id in set(self.last_modifications) - all_ids:
             terms, _mtime = self.last_modifications.pop(gone_id, ("", -1))
             for term in terms:
+                changed_terms.add(term)
                 if term in intervals:
                     intervals[term][0].discard(gone_id)
                     if not intervals[term][0]:
@@ -236,16 +243,9 @@ class Anki:
             self.cache.changed = True
 
         if learned_before != self.learned:
-            ivs = {
-                t: i.total_seconds() for t, (_, i) in intervals.items()
-            }.items()
-
-            for *_, diff in Difficulty.cache.data.values():
-                diff_ivs = {
-                    term: iv for term, iv in diff.anki_intervals.items()
-                    if iv or term in intervals
-                }.items()
-                if not diff_ivs <= ivs:  # <= here checks if A is a subset of B
+            for path, (*_, diff) in Difficulty.cache.data.items():
+                if (changed := changed_terms & diff.unique_terms):
+                    log.info("Related cards updated for %s: %r", path, changed)
                     diff.anki_changed = True
 
         self.loaded = True
@@ -344,22 +344,26 @@ class CachedFugashiNode:  # fugashi's Node class can't be dumped to json
 @dataclass(slots=True)
 class DifficultyCache(Cache):
     path: ClassVar[Path] = CACHE_DIR / "Difficulty.json.gz"
-    version: ClassVar[int] = 11
+    version: ClassVar[int] = 12
 
     data: dict[Path, tuple[float, int, Difficulty]] = \
         field(default_factory=dict)
 
     @override
     def load_data(self, data: dict[str, Any]) -> None:
+        def fix(diff: dict[str, Any]) -> dict[str, Any]:
+            return diff | {"unique_terms": set(diff["unique_terms"])}
         self.data |= {
-            Path(path): (mtime, size, Difficulty.from_cached(**diff))
+            Path(path): (mtime, size, Difficulty.from_cached(**fix(diff)))
             for path, (mtime, size, diff) in data.items()
         }
 
     @override
     def dump_data(self) -> dict[str, Any]:
+        def fix(diff: dict[str, Any]) -> dict[str, Any]:
+            return diff | {"unique_terms": list(diff["unique_terms"])}
         return {
-            str(path): [mtime, size, asdict(diff)]
+            str(path): [mtime, size, fix(asdict(diff))]
             for path, (mtime, size, diff) in self.data.copy().items()
         }
 
@@ -370,10 +374,9 @@ class Difficulty:
 
     pages: list[list[list[CachedFugashiNode]]] = field(default_factory=list)
     page_scores: list[float] = field(default_factory=list)
-    unique_terms: int = 0
+    unique_terms: set[str] = field(default_factory=set)
     anki_learned: int = 0
     anki_mature: int = 0
-    anki_intervals: dict[str, float] = field(default_factory=dict)
     anki_changed: bool = False
 
     def __bool__(self) -> bool:
@@ -398,11 +401,11 @@ class Difficulty:
 
     @property
     def anki_learned_percent(self) -> float:
-        return self.anki_learned / (self.unique_terms or 1) * 100
+        return self.anki_learned / (len(self.unique_terms) or 1) * 100
 
     @property
     def anki_mature_percent(self) -> float:
-        return self.anki_mature / (self.unique_terms or 1) * 100
+        return self.anki_mature / (len(self.unique_terms) or 1) * 100
 
     @classmethod
     def calculate(cls, ocr_json: Path) -> Difficulty:
@@ -443,10 +446,8 @@ class Difficulty:
                 for term in sentence
                 if term.feature.orthBase
             )
-            diff.unique_terms = len(dedup_counts)
+            diff.unique_terms = set(dedup_counts)
 
-        intervals: dict[str, timedelta] = {}
-        anki_not_found: set[str] = set()
         last_script = Script(0)
         soup_combo = 0
         unknown_kanji_words = 0
@@ -463,11 +464,6 @@ class Difficulty:
                 unknown_kanji_words = 0
 
             feat = term.feature
-
-            if (iv := ANKI.intervals.get(feat.orthBase, (None, None))[1]):
-                intervals[feat.orthBase] = iv
-            else:
-                anki_not_found.add(feat.orthBase)
 
             type_factor = POS1_DIFFICULTY_FACTORS.get(feat.pos1, 1)
             if not type_factor:
@@ -525,22 +521,19 @@ class Difficulty:
                 for i, term in enumerate(box)
             )
 
-        if diff.anki_intervals and not cached_text_changed:
-            intervals = {
-                term: ANKI.intervals.get(term, (None, None))[1] or timedelta()
-                for term in diff.anki_intervals
-            }
-
-        if not diff.page_scores:
+        if not diff.page_scores or cached_text_changed:
             diff.page_scores = [page_score(p) for p in diff.pages]
 
+        intervals = {
+            term: iv
+            for term in diff.unique_terms
+            if (iv := ANKI.intervals.get(term, (None, 0))[1])
+        }
+        diff.anki_changed = False
         diff.anki_learned = len(intervals)
         diff.anki_mature = len([
             iv for iv in intervals.values() if iv >= ANKI.MATURE_THRESHOLD
         ])
-        diff.anki_intervals = {
-            term: iv.total_seconds() for term, iv in intervals.items()
-        } | dict.fromkeys(anki_not_found, 0)
 
         cls.cache.data[ocr_json] = (fs_stats.st_mtime, fs_stats.st_size, diff)
         cls.cache.changed = True
