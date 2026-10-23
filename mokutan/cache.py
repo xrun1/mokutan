@@ -18,7 +18,7 @@ class Cache(ABC):
     path: ClassVar[Path]
     version: ClassVar[int]
 
-    changed: bool = False
+    changed: bool = field(default=False)
 
     @abstractmethod
     def load_data(self, data: dict[str, Any]) -> None:

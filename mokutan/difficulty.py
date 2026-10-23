@@ -61,12 +61,52 @@ class AnkiError(RuntimeError): ...
 class AnkiPermissionError(AnkiError): ...  # noqa: E302
 
 
+@final
+@dataclass(slots=True)
+class AnkiCache(Cache):
+    path: ClassVar[Path] = CACHE_DIR / "Anki.json.gz"
+    version: ClassVar[int] = 1
+
+    intervals: dict[str, tuple[set[int], timedelta]] = \
+        field(default_factory=dict)
+
+    last_modifications: dict[int, tuple[set[str], timedelta]] = \
+        field(default_factory=dict)
+
+    @override
+    def load_data(self, data: dict[str, Any]) -> None:
+        self.intervals = {
+            term: (set(card_ids), timedelta(seconds=time))
+            for term, (card_ids, time) in (data.get("intervals") or {}).items()
+        }
+        self.last_modifications = {
+            int(card_id): (set(terms), timedelta(seconds=time))
+            for card_id, (terms, time) in
+            (data.get("last_modifications") or {}).items()
+        }
+
+    @override
+    def dump_data(self) -> dict[str, dict[str, Any]]:
+        return {
+            "intervals": {
+                term: (list(card_ids), time.total_seconds())
+                for term, (card_ids, time) in self.intervals.copy().items()
+            },
+            "last_modifications": {
+                str(card_id): (list(terms), time.total_seconds())
+                for card_id, (terms, time) in
+                self.last_modifications.copy().items()
+            },
+        }
+
+
 @dataclass(slots=True)
 class Anki:
     DEFAULT_API: ClassVar[URL] = URL("http://localhost:8765")
     MATURE_THRESHOLD: ClassVar[timedelta] = timedelta(days=21)
     SUPER_MATURE_THRESHOLD: ClassVar[timedelta] = timedelta(days=21 * 3)
     SAVE_FILE: ClassVar[Path] = DATA_DIR / "Anki.json"
+    cache: ClassVar[AnkiCache] = AnkiCache()
 
     api: URL = field(default_factory=lambda: Anki.DEFAULT_API)
     key: str = ""
@@ -75,24 +115,31 @@ class Anki:
     note_types: list[str] = field(default_factory=list)
     note_fields: set[str] = field(default_factory=set)
     filters: list[tuple[str, str, str]] = field(default_factory=list)
-    intervals: dict[str, timedelta] = field(default_factory=dict)
+
+    @property
+    def intervals(self) -> dict[str, tuple[set[int], timedelta]]:
+        return self.cache.intervals
+
+    @property
+    def last_modifications(self) -> dict[int, tuple[set[str], timedelta]]:
+        return self.cache.last_modifications
 
     @property
     def learned(self) -> set[str]:
-        return {term for term, i in self.intervals.items() if i}
+        return {term for term, (_, iv) in self.intervals.items() if iv}
 
     @property
     def young(self) -> set[str]:
         return {
-            term for term, i in self.intervals.items()
-            if i and i < self.MATURE_THRESHOLD
+            term for term, (_, iv) in self.intervals.items()
+            if iv and iv < self.MATURE_THRESHOLD
         }
 
     @property
     def mature(self) -> set[str]:
         return {
-            term for term, i in self.intervals.items()
-            if i >= self.MATURE_THRESHOLD
+            term for term, (_, iv) in self.intervals.items()
+            if iv >= self.MATURE_THRESHOLD
         }
 
     async def do(self, action: str, **params: Any) -> Any:
@@ -127,31 +174,72 @@ class Anki:
             note_fields.update(fields)
         self.note_fields = note_fields
 
-        intervals = {}
+        all_ids: set[int] = set()
+        intervals = self.intervals.copy()
         for deck, note_type, card_field in self.filters:
             query = f"deck:{json.dumps(deck)} note:{json.dumps(note_type)}"
-            log.info("Loading %s/%s/%s", deck, note_type, card_field)
-            ids: list[int] = await self.do("findCards", query=query)
-            info: list[dict[str, Any]] = await self.do("cardsInfo", cards=ids)
+            ids: set[int] = set(await self.do("findCards", query=query))
+            all_ids |= ids
+
+            new = [
+                result["cardId"]
+                for result in await self.do("cardsModTime", cards=list(ids))
+                if result["cardId"] not in self.last_modifications or
+                    timedelta(seconds=result["mod"]) >
+                        self.last_modifications[result["cardId"]][1]
+            ]
+
+            if new:
+                log.info(
+                    "Loading %d cards for %s/%s/%s",
+                    len(new), deck, note_type, card_field,
+                )
+            info: list[dict[str, Any]] = await self.do("cardsInfo", cards=new)
 
             for card in info:
+                cid = card["cardId"]
                 iv = card["interval"]
 
-                for part in jp_parser(card["fields"][card_field]["value"]):
-                    if not part.feature.orthBase:
-                        continue
+                delta = timedelta(seconds=card["mod"])
+                terms = set()
+                self.last_modifications[cid] = (terms, delta)
+                self.cache.changed = True
 
-                    k = str(part.feature.orthBase)
+                for part in jp_parser(card["fields"][card_field]["value"]):
+                    k = part.feature.orthBase
+                    if not k:
+                        k = part.surface
+                        if not k or any(not is_japanese(char) for char in k):
+                            continue
+
+                    terms.add(k)
                     v = timedelta(seconds=iv) if iv < 0 else timedelta(days=iv)
 
-                    if k not in intervals or intervals[k] < v:
-                        intervals[k] = v
+                    if k not in intervals:
+                        intervals[k] = (set(), v)
+                    intervals[k][0].add(cid)
+                    if intervals[k][1] < v:
+                        intervals[k] = (intervals[k][0], v)
+
+        for gone_id in set(self.last_modifications) - all_ids:
+            terms, _mtime = self.last_modifications.pop(gone_id, ("", -1))
+            for term in terms:
+                if term in intervals:
+                    intervals[term][0].discard(gone_id)
+                    if not intervals[term][0]:
+                        del intervals[term]
 
         learned_before = self.learned
-        self.intervals = intervals
+        if self.intervals != intervals:
+            self.intervals.clear()
+            self.intervals.update(intervals)
+            self.cache.changed = True
 
         if learned_before != self.learned:
-            ivs = {t: i.total_seconds() for t, i in intervals.items()}.items()
+            ivs = {
+                t: i.total_seconds() for t, (_, i) in intervals.items()
+            }.items()
+
             for *_, diff in Difficulty.cache.data.values():
                 diff_ivs = {
                     term: iv for term, iv in diff.anki_intervals.items()
@@ -172,7 +260,7 @@ class Anki:
             log.warning("AnkiConnect API: %r", e)
         return self
 
-    async def keep_updated(self, interval: float = 600) -> None:
+    async def keep_updated(self, interval: float = 300) -> None:
         while True:
             await asyncio.sleep(interval)
             await self.safe_load()
@@ -194,7 +282,7 @@ class Anki:
     def html_mark_known(self, text: str) -> Iterable[str]:
         assert jp_parser
         for part in jp_parser(text):
-            iv = self.intervals.get(part.feature.orthBase)
+            _, iv = self.intervals.get(part.feature.orthBase, (None, None))
             clean = html.escape(part.surface)
             pos1 = part.feature.pos1
 
@@ -372,7 +460,7 @@ class Difficulty:
 
             feat = term.feature
 
-            if (iv := ANKI.intervals.get(feat.orthBase)):
+            if (iv := ANKI.intervals.get(feat.orthBase, (None, None))[1]):
                 intervals[feat.orthBase] = iv
             else:
                 anki_not_found.add(feat.orthBase)
@@ -509,6 +597,10 @@ def is_kanji(char: str) -> bool:
         (0x4E00 <= code <= 0x9FFF) or
         (0xF900 <= code <= 0xFAFF)
     )
+
+
+def is_japanese(char: str) -> bool:
+    return is_kanji(char) or is_hiragana(char) or is_katakana(char)
 
 
 @lru_cache(32768)

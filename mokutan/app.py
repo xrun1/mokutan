@@ -111,9 +111,11 @@ class WindowsDrives(Page):
 async def life(_app: FastAPI):
     difficulty.Difficulty.cache.load()
     difficulty.load_dict_data()
+    difficulty.ANKI.cache.load()
     await difficulty.ANKI.safe_load()
     tasks = [
         asyncio.create_task(difficulty.ANKI.keep_updated()),
+        asyncio.create_task(difficulty.ANKI.cache.keep_saving()),
         asyncio.create_task(difficulty.Difficulty.cache.keep_saving()),
     ]
     tasks += [
