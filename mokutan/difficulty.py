@@ -503,9 +503,9 @@ class Difficulty:
                 )
                 * type_factor
                 * script_diff
-                * 1.375 ** soup_combo
+                * 1.375 ** min(8, soup_combo)
                 * homophone_ambiguity
-                * 1.01 ** len(box)
+                * 1.01 ** min(50, len(box))
             ) / 10_000
 
         def page_score(page: list[list[CachedFugashiNode]]) -> float:
