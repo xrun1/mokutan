@@ -450,18 +450,16 @@ class Difficulty:
 
         last_script = Script(0)
         soup_combo = 0
-        unknown_kanji_words = 0
 
         def term_score(
             box: list[CachedFugashiNode],
             box_index: int,
             term: CachedFugashiNode,
         ) -> float:
-            nonlocal soup_combo, last_script, unknown_kanji_words
+            nonlocal soup_combo, last_script
             if box_index == 0:
                 soup_combo = 0
                 last_script = Script(0)
-                unknown_kanji_words = 0
 
             feat = term.feature
 
@@ -487,9 +485,6 @@ class Difficulty:
                 soup_combo = 0
             last_script = script
 
-            if script & Script.kanji:
-                unknown_kanji_words += 1
-
             if len(freqs) > 1:
                 sfreqs = sorted(freqs)
                 best = sfreqs[0]
@@ -511,7 +506,6 @@ class Difficulty:
                 * 1.375 ** soup_combo
                 * homophone_ambiguity
                 * 1.01 ** len(box)
-                * 1.05 ** unknown_kanji_words
             ) / 10_000
 
         def page_score(page: list[list[CachedFugashiNode]]) -> float:
