@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import gzip as gz
 import html
 import json
 import re
@@ -27,7 +26,7 @@ from mokutan.cache import Cache
 from mokutan.utils import DATA_DIR
 
 from . import misc
-from .utils import CACHE_DIR, ReferrerRedirect, flatten, log
+from .utils import CACHE_DIR, ReferrerRedirect, flatten, log, winsorized_mean
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -344,7 +343,7 @@ class CachedFugashiNode:  # fugashi's Node class can't be dumped to json
 @dataclass(slots=True)
 class DifficultyCache(Cache):
     path: ClassVar[Path] = CACHE_DIR / "Difficulty.json.gz"
-    version: ClassVar[int] = 12
+    version: ClassVar[int] = 13
 
     data: dict[Path, tuple[float, int, Difficulty]] = \
         field(default_factory=dict)
@@ -384,7 +383,7 @@ class Difficulty:
 
     @property
     def score(self) -> float:
-        return sum(self.page_scores) / (len(self.page_scores) or 1)
+        return winsorized_mean(*self.page_scores, trim_start=0)
 
     @property
     def sentences_per_page(self) -> float:
