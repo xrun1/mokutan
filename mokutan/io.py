@@ -437,6 +437,8 @@ class MPath(Path):
             return ns(lambda e: e.page_count or math.inf)
         if sort == "d":
             return ns(lambda e: e.difficulty.score or math.inf)
+        if sort == "t":
+            return ns(lambda e: e.difficulty.peak or math.inf)
         if sort == "x":
             return ns(lambda e: sum(e.difficulty.page_scores) or math.inf)
         if sort == "a":
