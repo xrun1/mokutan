@@ -158,12 +158,19 @@
     line-height: 100%;
     margin-top: 0.75em;
     font-size: 0.75em;
+    -webkit-text-stroke: 4px white;
+    paint-order: stroke fill;
+    transition: 0.2s -webkit-text-stroke-color;
+
+    &:hover {
+        -webkit-text-stroke-color: lightgray;
+    }
 
     &::selection {
         color: transparent;
     }
 
     & .select-all::after {
-        content: "◌";
+        content: "▣";
     }
 }
