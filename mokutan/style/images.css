@@ -71,7 +71,7 @@
     }
 
     &:not(.has-overlap) {
-        transition: opacity 0.2s;
+        transition: opacity 0.4s ease-in-out;
         opacity: 0;
 
         &:hover {
@@ -87,7 +87,7 @@
         & .ocr-box-pair {
             & .ocr-box-bg, .ocr-box-fg {
                 opacity: 0;
-                transition: opacity 0.2s;
+                transition: opacity 0.4s ease-in-out;
             }
             &:hover {
                 & .ocr-box-bg, .ocr-box-fg {
