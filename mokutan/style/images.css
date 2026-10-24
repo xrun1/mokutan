@@ -155,9 +155,17 @@
 .ocr-box-actions {
     position: absolute;
     top: 100%;
-    line-height: 100%;
-    margin-top: 0.75em;
+    line-height: 50%;
+    margin-top: 1em;
     font-size: 0.75em;
+    writing-mode: initial;
+    padding-inline: 0.25rem;
+    background: black;
+    color: white;
+    font-weight: bold;
+    border-radius: 4px;
+    transition: 0.2s background;
+    z-index: -100;
 
     &::selection {
         color: transparent;
@@ -165,5 +173,9 @@
 
     & .select-all::after {
         content: "◌";
+    }
+
+    &:hover {
+        background: darkslategray;
     }
 }
