@@ -395,6 +395,12 @@ class Difficulty:
         return max(self._winsorized)
 
     @property
+    def debug(self) -> str:
+        return "\n".join(
+            f"p{p}: {s:.2f}" for p, s in enumerate(self.page_scores, 1)
+        )
+
+    @property
     def sentences_per_page(self) -> float:
         return sum(len(p) for p in self.pages) / (len(self.pages) or 1)
 
