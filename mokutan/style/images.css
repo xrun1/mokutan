@@ -154,9 +154,7 @@
 
 .ocr-box-actions {
     position: absolute;
-    top: 100%;
-    line-height: 100%;
-    margin-top: 0.75em;
+    bottom: 100%;
     font-size: 0.75em;
     -webkit-text-stroke: 4px white;
     paint-order: stroke fill;
