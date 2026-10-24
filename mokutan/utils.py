@@ -3,7 +3,6 @@ from __future__ import annotations
 import functools
 import logging
 from pathlib import Path
-from statistics import mean
 from typing import TYPE_CHECKING, NamedTuple
 
 import appdirs
@@ -73,12 +72,11 @@ def is_web_image(path: Path | str) -> bool:
 
 def winsorized_mean(
     *nums: float, trim_start: float = 0.1, trim_end: float = 0.1,
-) -> float:
+) -> list[float]:
     # e.g. start/end 0.1: [12, 15, 18, 22, 90] → [15, 15, 18, 22, 22]
     if not nums:
-        return 0
- 
+        return []
     ordered = sorted(nums)
     lower = ordered[int(len(nums) * trim_start)]
     upper = ordered[len(nums) - 1 - int(len(nums) * trim_end)]
-    return mean(min(max(n, lower), upper) for n in nums)
+    return [min(max(n, lower), upper) for n in nums]

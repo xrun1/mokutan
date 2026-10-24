@@ -12,6 +12,7 @@ from functools import lru_cache
 from importlib import resources
 from io import BytesIO
 from pathlib import Path
+from statistics import mean
 from typing import TYPE_CHECKING, Any, ClassVar, Self, final, override
 from zipfile import ZipFile
 
@@ -343,7 +344,7 @@ class CachedFugashiNode:  # fugashi's Node class can't be dumped to json
 @dataclass(slots=True)
 class DifficultyCache(Cache):
     path: ClassVar[Path] = CACHE_DIR / "Difficulty.json.gz"
-    version: ClassVar[int] = 13
+    version: ClassVar[int] = 14
 
     data: dict[Path, tuple[float, int, Difficulty]] = \
         field(default_factory=dict)
@@ -382,8 +383,16 @@ class Difficulty:
         return bool(self.score)
 
     @property
+    def _winsorized(self) -> list[float]:
+        return winsorized_mean(*self.page_scores, trim_start=0) or [0]
+
+    @property
     def score(self) -> float:
-        return winsorized_mean(*self.page_scores, trim_start=0)
+        return mean(self._winsorized)
+
+    @property
+    def peak(self) -> float:
+        return max(self._winsorized)
 
     @property
     def sentences_per_page(self) -> float:
